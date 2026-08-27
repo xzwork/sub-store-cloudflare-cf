@@ -1,0 +1,20 @@
+{
+  "scripts": [
+    {
+      "id": "my-operator",
+      "name": "My Operator",
+      "description": "A personal build-time node transformer.",
+      "kind": "operator",
+      "entry": "scripts.local/my-operator.js",
+      "parameters": [
+        {
+          "key": "prefix",
+          "label": "Name prefix",
+          "type": "string",
+          "required": false,
+          "default": "Private"
+        }
+      ]
+    }
+  ]
+}

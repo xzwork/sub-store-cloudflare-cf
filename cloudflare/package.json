@@ -1,0 +1,32 @@
+{
+  "name": "sub-store-cloudflare",
+  "version": "1.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check": "node ../scripts/generate-script-registry.mjs && pnpm run types:check && tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "test": "node ../scripts/generate-script-registry.mjs && vitest run",
+    "dev": "node ../scripts/generate-script-registry.mjs && wrangler dev",
+    "deploy": "node ../scripts/generate-script-registry.mjs && wrangler deploy --config wrangler.deploy.local.jsonc",
+    "migrate:local": "wrangler d1 migrations apply sub-store-cloudflare --local --config wrangler.deploy.local.jsonc",
+    "migrate:remote": "wrangler d1 migrations apply sub-store-cloudflare --remote --config wrangler.deploy.local.jsonc",
+    "types": "node ../scripts/generate-script-registry.mjs && wrangler types ./src/worker-configuration.d.ts --config wrangler.jsonc --env-interface SubStoreEnv --include-runtime false --strict-vars false",
+    "types:check": "wrangler types ./src/worker-configuration.d.ts --config wrangler.jsonc --env-interface SubStoreEnv --include-runtime false --strict-vars false --check"
+  },
+  "dependencies": {
+    "hono": "^4.12.28",
+    "json5": "^2.2.3",
+    "yaml": "^2.9.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.18.4",
+    "@cloudflare/workers-types": "^5.20260710.1",
+    "@types/node": "^22.18.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10",
+    "wrangler": "^4.110.0"
+  }
+}

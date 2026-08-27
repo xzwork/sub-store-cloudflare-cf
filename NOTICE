@@ -1,0 +1,14 @@
+Sub-Store Cloudflare is a Cloudflare Worker application for subscription
+aggregation and cloud-side routing templates.
+
+The Worker code, deployment tooling, and documentation in this repository are
+distributed under the license in LICENSE. There is no warranty.
+
+The frontend in frontend/ is a trimmed Cloudflare-native edition based on the
+original Sub-Store frontend experience and remains accompanied by
+frontend/LICENSE.
+
+Upstream projects:
+
+- https://github.com/sub-store-org/Sub-Store
+- https://github.com/sub-store-org/Sub-Store-Front-End

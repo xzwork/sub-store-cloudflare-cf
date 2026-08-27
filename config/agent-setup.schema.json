@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Sub-Store Cloudflare Agent Setup",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "deployment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "workerName": { "type": "string", "minLength": 1 },
+        "d1DatabaseName": { "type": "string", "minLength": 1 },
+        "d1DatabaseId": { "type": "string", "pattern": "^[0-9a-fA-F-]{36}$" },
+        "adminHostname": { "type": "string", "maxLength": 253 },
+        "downloadHostname": { "type": "string", "maxLength": 253 },
+        "adminToken": { "type": "string", "minLength": 16 },
+        "downloadToken": { "type": "string", "minLength": 16 },
+        "downloadTargets": {
+          "type": "array",
+          "items": { "enum": ["mihomo", "stash", "surge", "surge-mac", "surfboard", "loon", "egern", "shadowrocket", "qx", "sing-box", "v2ray", "uri", "json"] },
+          "uniqueItems": true
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/source" }
+    },
+    "collections": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/collection" }
+    },
+    "templates": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/template" }
+    }
+  },
+  "required": ["sources", "collections", "templates"],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]{1,64}$"
+    },
+    "filter": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "type": { "enum": ["include", "exclude", "rename", "delete-field", "dedupe", "sort", "regex-sort", "resolve", "flag", "quick", "script"] },
+        "field": { "type": "string" },
+        "fields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "pattern": { "type": "string" },
+        "patterns": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "expressions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "replacement": { "type": "string" },
+        "direction": { "enum": ["asc", "desc", "random", "original"] },
+        "action": { "enum": ["delete", "rename"] },
+        "link": { "type": "string" },
+        "position": { "enum": ["front", "back"] },
+        "template": { "type": "string" },
+        "mode": { "enum": ["add", "remove"] },
+        "tw": { "enum": ["cn", "ws", "tw"] },
+        "provider": { "enum": ["Google", "Cloudflare", "Ali", "Tencent", "Custom"] },
+        "recordType": { "enum": ["A", "AAAA"] },
+        "filter": { "enum": ["disabled", "removeFailed", "IPOnly", "IPv4Only", "IPv6Only"] },
+        "url": { "type": "string" },
+        "edns": { "type": "string" },
+        "concurrency": {
+          "oneOf": [
+            { "type": "integer", "minimum": 1, "maximum": 12 },
+            { "type": "string" }
+          ]
+        },
+        "scriptId": { "$ref": "#/$defs/identifier" },
+        "scriptKind": { "enum": ["filter", "operator"] },
+        "arguments": { "type": "object" },
+        "useless": { "enum": ["DEFAULT", "ENABLED", "DISABLED"] },
+        "udp": { "enum": ["DEFAULT", "ENABLED", "DISABLED"] },
+        "scert": { "enum": ["DEFAULT", "ENABLED", "DISABLED"] },
+        "tfo": { "enum": ["DEFAULT", "ENABLED", "DISABLED"] },
+        "vmess aead": { "enum": ["DEFAULT", "ENABLED", "DISABLED"] }
+      },
+      "required": ["type"]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "name": { "type": "string" },
+        "type": { "enum": ["remote", "local"] },
+        "url": { "type": "string" },
+        "content": { "type": "string" },
+        "enabled": { "type": "boolean" },
+        "filterPresetIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "filters": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/filter" }
+        },
+        "meta": { "type": "object" }
+      },
+      "required": ["id", "name", "type"],
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "remote" } } },
+          "then": { "required": ["url"] }
+        },
+        {
+          "if": { "properties": { "type": { "const": "local" } } },
+          "then": { "required": ["content"] }
+        }
+      ]
+    },
+    "collection": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "name": { "type": "string" },
+        "sourceIds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/identifier" },
+          "uniqueItems": true
+        },
+        "templateId": { "$ref": "#/$defs/identifier" },
+        "ignoreFailed": { "type": "boolean" },
+        "enabled": { "type": "boolean" },
+        "filterPresetIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true
+        },
+        "filters": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/filter" }
+        },
+        "meta": { "type": "object" }
+      },
+      "required": ["id", "name", "sourceIds", "templateId"]
+    },
+    "template": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "name": { "type": "string" },
+        "target": { "enum": ["mihomo", "stash"] },
+        "config": { "type": "object" }
+      },
+      "required": ["id", "name", "target", "config"]
+    }
+  }
+}

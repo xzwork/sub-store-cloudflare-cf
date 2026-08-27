@@ -1,0 +1,54 @@
+{
+  "scripts": [
+    {
+      "id": "tls-fingerprint",
+      "name": "TLS Fingerprint",
+      "nameZh": "TLS 指纹",
+      "description": "Set tls-fingerprint on every node.",
+      "descriptionZh": "为所有节点设置 tls-fingerprint。",
+      "kind": "operator",
+      "compatibility": "free",
+      "entry": "script-plugins/tls-fingerprint.js",
+      "parameters": [
+        {
+          "key": "fingerprint",
+          "label": "Fingerprint",
+          "labelZh": "指纹",
+          "type": "string",
+          "required": true,
+          "default": "chrome",
+          "placeholder": "chrome"
+        }
+      ]
+    },
+    {
+      "id": "name-regex-filter",
+      "name": "Name Regex Filter",
+      "nameZh": "节点名正则过滤",
+      "description": "Keep or remove nodes whose names match a regular expression.",
+      "descriptionZh": "按节点名正则保留或排除节点。",
+      "kind": "filter",
+      "compatibility": "free",
+      "entry": "script-plugins/name-regex-filter.js",
+      "parameters": [
+        {
+          "key": "pattern",
+          "label": "Regular expression",
+          "labelZh": "正则表达式",
+          "type": "string",
+          "required": true,
+          "default": "HK|香港",
+          "placeholder": "HK|香港"
+        },
+        {
+          "key": "keep",
+          "label": "Keep matching nodes",
+          "labelZh": "保留匹配节点",
+          "type": "boolean",
+          "required": false,
+          "default": true
+        }
+      ]
+    }
+  ]
+}

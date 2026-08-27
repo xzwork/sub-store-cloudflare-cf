@@ -1,0 +1,314 @@
+# 部署说明
+
+第一次部署优先阅读 [五分钟快速开始](quick-start.md)。升级已有部署请阅读 [升级指南](upgrading.md)。
+
+这个仓库有三种部署路径：
+
+1. Cloudflare 官方一键部署按钮：最适合普通开源用户。
+2. Agent / CLI 一键安装器：适合需要导入订阅源、创建组合订阅和返回下载链接的用户。
+3. 手动 Wrangler 部署：适合需要完全控制每一步的人。
+
+默认架构保持 Cloudflare-native：Workers Static Assets + Worker API + D1 + Worker Secrets。Workers Cache API 只用于可自动降级的远程订阅短期缓存，不需要额外 provision。
+
+## 1. Cloudflare 官方一键部署
+
+README 顶部的按钮：
+
+```md
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/realchendahuang/sub-store-cloudflare)
+```
+
+Cloudflare 会读取根目录 [../wrangler.jsonc](../wrangler.jsonc)，自动 provision D1，并用根目录 `package.json` 的 `build` / `deploy` 脚本构建部署。
+
+部署页会要求填写：
+
+- `SUB_STORE_ADMIN_TOKEN`
+- `SUB_STORE_PUBLIC_DOWNLOAD_TOKEN`
+
+跨平台生成两个 token：
+
+```bash
+node -e "const{randomBytes:r}=require('node:crypto');console.log(r(32).toString('base64url'));console.log(r(32).toString('base64url'))"
+```
+
+第一行用于 admin token，第二行用于 download token。两个值必须不同。仓库根目录不提供 `.dev.vars.example`，避免 Cloudflare 部署表单把公开占位字符串当作 Secret 默认值。
+
+部署后进入：
+
+```text
+https://<worker>.<workers-subdomain>.workers.dev/?token=<admin-token>
+```
+
+前端读取管理 token 后会立即从地址栏移除它，后续 API 请求使用 `Authorization` 请求头。
+
+然后在网页管理界面里添加订阅源、组合订阅和模板。
+
+按钮部署的定位是“最快跑起来”。它不会读取你的本地 `config/agent-setup.local.json`，也不会把订阅源写进 GitHub。
+
+注意：Cloudflare 官方按钮会把仓库导入到用户自己的 GitHub/GitLab 账号，并可能为这个副本配置 Workers Builds。这个行为属于 Cloudflare 的模板部署体验，不代表本上游仓库使用 GitHub Actions、Dependabot 或 GitHub CI/CD。
+
+## 2. Agent / CLI 一键安装
+
+交互式安装器入口：
+
+```bash
+pnpm run install:cloudflare
+```
+
+如果没有 `config/agent-setup.local.json`，真实终端会进入简短引导，询问 Worker、D1、自定义域名和可选远程订阅 URL。只想部署空应用并在网页配置：
+
+```bash
+pnpm run install:quick
+```
+
+单独生成两个项目自带的跨平台 Token：
+
+```bash
+pnpm run tokens:generate
+```
+
+它会执行：
+
+- 安装依赖。
+- 检查 Wrangler 和 Cloudflare 登录。
+- 创建或复用 D1。
+- 生成 `cloudflare/wrangler.deploy.local.jsonc`。
+- 生成或使用 `SUB_STORE_ADMIN_TOKEN` / `SUB_STORE_PUBLIC_DOWNLOAD_TOKEN`。
+- 写入 Worker secrets。
+- 运行检查、D1 migration、Worker deploy。
+- 渲染并导入 `cloudflare/agent.seed.local.sql`。
+- 验证 `/api/env`、`/api/templates`、`/api/sources`、`/api/collections` 和 collection 下载链接。
+- 打印 admin URL 和 collection download URLs。
+- 在构建前生成 JavaScript 脚本注册表；如果存在本地个人脚本清单，会一起编译进 Worker。
+
+如果配置里没有 token，安装器会本地生成，并写回被 Git 忽略的 `config/agent-setup.local.json`。这样部署中途失败后可以安全重跑，不会因为 token 自动轮换导致前后不一致。HTTP 验证任一失败时命令会以非零状态退出，并打印当前进度和恢复命令；不要把仅完成 `wrangler deploy` 当成完整成功。
+
+非交互 Agent 环境缺少 setup 文件时，安装器会生成示例文件并停止，不会把 `example.com` 订阅地址部署到生产。Agent 必须写好真实 setup 后重新运行。`--quick` 只适合明确要在网页中配置的空部署。
+
+如果没有 Cloudflare 账号或还没登录：
+
+```bash
+pnpm --dir cloudflare exec wrangler login
+pnpm run install:cloudflare
+```
+
+如果 agent 运行环境无法访问 Cloudflare，安装器会停止并给出 resume 命令，不会假装已经部署。
+
+可以先做本地诊断：
+
+```bash
+pnpm run install:doctor
+```
+
+## 3. 准备 Agent Seed 配置
+
+私有导入配置写在：
+
+```text
+config/agent-setup.local.json
+```
+
+第一次可以复制：
+
+```bash
+cp config/agent-setup.example.json config/agent-setup.local.json
+```
+
+然后按 [../config/agent-setup.schema.json](../config/agent-setup.schema.json) 填写 `sources`、`collections`、`templates`。
+
+ID 统一使用 1–64 位小写字母、数字、下划线或连字符。组合订阅的 `sourceIds: []` 表示动态包含全部已启用订阅源；如果只想使用指定来源，请显式列出它们的 ID。
+
+需要复用指定 D1 时，可以在本地 setup 的 `deployment.d1DatabaseId` 填入 Cloudflare 返回的 UUID；该文件属于私有部署配置，不要提交。
+
+常用模板和过滤器预设见 [../config/rule-presets.json](../config/rule-presets.json)。
+
+验证和渲染：
+
+```bash
+pnpm run seed:validate
+pnpm run seed:render
+```
+
+导入远程 D1：
+
+```bash
+pnpm run seed:remote
+```
+
+本地开发导入：
+
+```bash
+pnpm run seed:local
+```
+
+这些本地文件都被 git ignore：
+
+- `config/agent-setup.local.json`
+- `cloudflare/agent.seed.local.sql`
+- `cloudflare/wrangler.deploy.local.jsonc`
+- `config/script-plugins.local.json`
+- `config/scripts.local/`
+- `cloudflare/src/generated/`
+
+需要个人 JavaScript Filter / Operator 时，按 [script-plugins.md](script-plugins.md) 创建本地脚本清单。个人脚本属于部署代码，修改后必须重新运行 installer；Deploy to Cloudflare 按钮只包含公开内置脚本。
+
+## 4. 手动 Wrangler 部署
+
+安装依赖并登录：
+
+```bash
+pnpm run setup
+pnpm --dir cloudflare exec wrangler login
+```
+
+创建 D1：
+
+```bash
+pnpm --dir cloudflare exec wrangler d1 create sub-store-cloudflare
+```
+
+用返回的 `database_id` 生成本地部署配置：
+
+```bash
+cp config/agent-setup.example.json config/agent-setup.local.json
+pnpm run deploy:config -- config/agent-setup.local.json cloudflare/wrangler.deploy.local.jsonc --database-id <database-id>
+```
+
+设置 secrets：
+
+```bash
+pnpm --dir cloudflare exec wrangler secret put SUB_STORE_ADMIN_TOKEN --config wrangler.deploy.local.jsonc
+pnpm --dir cloudflare exec wrangler secret put SUB_STORE_PUBLIC_DOWNLOAD_TOKEN --config wrangler.deploy.local.jsonc
+```
+
+迁移和部署：
+
+```bash
+pnpm run migrate:remote
+pnpm run deploy:local
+```
+
+如果需要先 dry-run：
+
+```bash
+pnpm run deploy:local:dry-run
+```
+
+## 5. 自定义域名
+
+默认部署到 `workers.dev`。
+
+如果要绑定自己的管理域名，在 `config/agent-setup.local.json` 填：
+
+```json
+{
+  "deployment": {
+    "adminHostname": "substore.example.com",
+    "downloadHostname": ""
+  }
+}
+```
+
+重新生成本地配置：
+
+```bash
+pnpm run deploy:config -- config/agent-setup.local.json cloudflare/wrangler.deploy.local.jsonc --database-id <database-id>
+```
+
+如果使用单独下载域名，填写 `downloadHostname`。生成器会写入 `SUB_STORE_PUBLIC_DOWNLOAD_HOSTS`，该域名只允许访问 `/download/*`。
+
+## 6. 本地开发
+
+需要 Node.js 22 和 pnpm 11。
+
+```bash
+pnpm run setup
+cp cloudflare/.dev.vars.example cloudflare/.dev.vars
+pnpm run build:frontend
+pnpm run dev
+```
+
+本地 `.dev.vars` 至少包含：
+
+```dotenv
+SUB_STORE_ADMIN_TOKEN=dev-admin-token
+SUB_STORE_PUBLIC_DOWNLOAD_TOKEN=dev-download-token
+```
+
+访问：
+
+```text
+http://localhost:8787/?token=dev-admin-token
+```
+
+## 7. 下载链接
+
+管理界面：
+
+```text
+https://substore.example.com/?token=<admin-token>
+```
+
+下载链接：
+
+```text
+https://substore.example.com/download/source/<source-id>?token=<download-token>
+https://substore.example.com/download/collection/<collection-id>?token=<download-token>
+https://substore.example.com/download/collection/<collection-id>/mihomo?token=<download-token>
+https://substore.example.com/download/collection/<collection-id>/sing-box?token=<download-token>
+https://substore.example.com/download/collection/<collection-id>/uri?token=<download-token>
+```
+
+不带输出格式的链接是通用订阅，Worker 会按客户端 User-Agent 自动选择格式。
+
+临时转换链接：
+
+```text
+https://substore.example.com/download/source/<source-id>?token=<download-token>&url=https%3A%2F%2Fexample.com%2Fsub
+https://substore.example.com/download/source/<source-id>/uri?token=<download-token>&content=<url-encoded-node-text>
+```
+
+`url`、`content` 和 `ua` 只影响本次请求，不会写入 D1。
+
+远程订阅默认边缘缓存 300 秒。可以在“设置 → 请求设置”中把 TTL 设为 `0` 关闭，或者给下载链接添加 `refresh=1` 强制刷新。Cache API 不可用时 Worker 会直接请求上游。
+
+## 从旧版本升级
+
+继续使用原来的 Worker、D1 和 Worker Secrets。Deploy Button 仓库副本不会自动获得上游版本；完整同步、migration、备份和回滚步骤见 [升级指南](upgrading.md)。
+
+## 8. 备份与恢复
+
+管理界面的「设置」页面可以导出和恢复完整配置，包括订阅源、组合订阅、规则模板和请求设置。
+
+也可以用 `Authorization` 请求头导出，避免把管理 token 放进 URL、浏览器历史或代理日志：
+
+```bash
+curl -fsS \
+  --header "Authorization: Bearer <admin-token>" \
+  https://substore.example.com/api/storage \
+  --output sub-store-cloudflare-backup.json
+```
+
+恢复入口是 `POST /api/storage`，请求体可以是完整备份 JSON，也可以是 `{ "content": "<backup-json>" }`。
+
+## 9. 发布前检查
+
+```bash
+pnpm run check:release
+pnpm run deploy:dry-run
+```
+
+它会执行：
+
+- Worker TypeScript 检查。
+- Workers/D1 集成测试与测试代码类型检查。
+- 前端生产构建。
+- 前后端生产依赖审计。
+- 真实 `wrangler dev` 启动 smoke test。
+- Agent setup / seed / deploy config 检查。
+- Worker contract 检查。
+- 当前文件发布风险扫描。
+- `main` 历史发布风险扫描。
+- Wrangler dry-run 部署检查。
+- 仓库没有 GitHub Actions 或 Dependabot 自动化；`.github` 只用于 issue / pull request 模板。
+- 发布检查在本地完成。

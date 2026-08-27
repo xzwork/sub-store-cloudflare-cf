@@ -1,0 +1,50 @@
+{
+  "$schema": "./agent-setup.schema.json",
+  "deployment": {
+    "workerName": "sub-store-cloudflare",
+    "d1DatabaseName": "sub-store-cloudflare",
+    "adminHostname": "",
+    "downloadHostname": "",
+    "downloadTargets": ["mihomo", "sing-box", "uri"]
+  },
+  "sources": [
+    {
+      "id": "airport-a",
+      "name": "Airport A",
+      "type": "remote",
+      "url": "https://example.com/subscription",
+      "enabled": true,
+      "filterPresetIds": ["clean-provider-nodes"],
+      "filters": [],
+      "meta": {
+        "tag": ["airport"]
+      }
+    },
+    {
+      "id": "home-node",
+      "name": "Home Node",
+      "type": "local",
+      "content": "vless://uuid@example.com:443?encryption=none&security=tls&type=tcp#home-node",
+      "enabled": true,
+      "filters": [],
+      "meta": {
+        "tag": ["self-hosted"]
+      }
+    }
+  ],
+  "collections": [
+    {
+      "id": "daily",
+      "name": "Daily",
+      "sourceIds": ["airport-a", "home-node"],
+      "templateId": "acl4ssr-mihomo",
+      "ignoreFailed": true,
+      "filterPresetIds": ["dedupe-by-endpoint", "sort-by-name"],
+      "filters": [],
+      "meta": {
+        "tag": ["default"]
+      }
+    }
+  ],
+  "templates": []
+}

@@ -1,0 +1,73 @@
+{
+  "templates": [
+    {
+      "id": "acl4ssr-mihomo",
+      "label": "ACL4SSR default",
+      "useWhen": "Balanced default for most users, with ad blocking, AI, media, Telegram, Apple, Microsoft, China direct, and fallback routing."
+    },
+    {
+      "id": "acl4ssr-mihomo-no-emoji",
+      "label": "ACL4SSR no emoji",
+      "useWhen": "Use when the client UI or user preference needs plain group names without emoji."
+    },
+    {
+      "id": "ai-streaming-mihomo",
+      "label": "AI and streaming",
+      "useWhen": "Use when AI services, streaming platforms, Telegram, and GitHub routing need explicit groups."
+    },
+    {
+      "id": "loyalsoldier-whitelist",
+      "label": "Loyalsoldier whitelist",
+      "useWhen": "Direct-first style. Unknown traffic goes through proxy."
+    },
+    {
+      "id": "loyalsoldier-blacklist",
+      "label": "Loyalsoldier blacklist",
+      "useWhen": "Proxy only listed domains. Unknown traffic goes direct."
+    },
+    {
+      "id": "mihomo-basic",
+      "label": "Small basic template",
+      "useWhen": "Smallest readable Mihomo output for debugging or heavy customization."
+    }
+  ],
+  "filters": [
+    {
+      "id": "clean-provider-nodes",
+      "label": "Remove provider info nodes",
+      "filters": [
+        { "type": "exclude", "field": "name", "pattern": "官网|剩余|流量|过期|到期|套餐|倍率|重置|订阅说明|交流群|官方群|TG群|电报群|更新时间|节点更新" }
+      ]
+    },
+    {
+      "id": "dedupe-by-endpoint",
+      "label": "Deduplicate by server and port",
+      "filters": [
+        { "type": "dedupe", "fields": ["server", "port"] }
+      ]
+    },
+    {
+      "id": "sort-by-name",
+      "label": "Sort by node name",
+      "filters": [
+        { "type": "sort", "direction": "asc" }
+      ]
+    },
+    {
+      "id": "hk-jp-sg-us-only",
+      "label": "Only HK JP SG US",
+      "filters": [
+        { "type": "include", "field": "name", "pattern": "香港|港|HK|日本|东京|東京|JP|新加坡|狮城|獅城|SG|美国|美國|US|USA|洛杉矶|洛杉磯" }
+      ],
+      "warning": "Use only when the user explicitly wants to keep these regions; include filters can remove valid nodes."
+    }
+  ],
+  "recommendedCollections": [
+    {
+      "id": "daily",
+      "name": "Daily",
+      "templateId": "acl4ssr-mihomo",
+      "filterPresetIds": ["dedupe-by-endpoint", "sort-by-name"]
+    }
+  ]
+}

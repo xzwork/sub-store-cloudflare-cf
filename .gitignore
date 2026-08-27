@@ -1,0 +1,61 @@
+.DS_Store
+*.log
+*.local
+
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+.open-source-denylist.local
+wrangler.deploy.local.jsonc
+cloudflare/wrangler.deploy.local.jsonc
+*.seed.local.json
+*.seed.local.sql
+*.local.json
+*.local.jsonc
+*.setup.local.json
+*.setup.local.sql
+*.private.json
+*.private.sql
+config/scripts.local/
+config/script-plugins.local.json
+cloudflare/src/generated/
+
+# Dependency and build output
+**/node_modules/
+**/dist/
+**/dist-ssr/
+**/.wrangler/
+**/.turbo/
+**/.cache/
+**/coverage/
+**/.nyc_output/
+**/*.tsbuildinfo
+*.cpuprofile
+
+# Local runtime state and secrets
+.dev.vars
+.dev.vars*
+!cloudflare/.dev.vars.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.csr
+*.mobileconfig
+*.ovpn
+*.conf
+sub-store-git-backups-*/
+**/sub-store-git-backups-*/
+
+# Generated Cloudflare types
+cloudflare/worker-configuration.d.ts
+
+# Editor and OS state
+.idea/
+.vscode/*
+!**/.vscode/extensions.json
+*.swp
+*.swo
