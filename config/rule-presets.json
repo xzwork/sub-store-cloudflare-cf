@@ -51,31 +51,6 @@
       "useWhen": "Provider-style self-hosted preference adapted to app-managed sources."
     },
     {
-      "id": "lanlan-standard",
-      "label": "Lanlan standard",
-      "useWhen": "Full Lanlan routing with ad blocking."
-    },
-    {
-      "id": "lanlan-no-ad",
-      "label": "Lanlan no ads",
-      "useWhen": "Full Lanlan routing without ad-blocking rules."
-    },
-    {
-      "id": "lanlan-lite",
-      "label": "Lanlan lite",
-      "useWhen": "Geo-data-dependent lightweight Lanlan routing."
-    },
-    {
-      "id": "lanlan-lite-no-ad",
-      "label": "Lanlan lite no ads",
-      "useWhen": "Lightweight Lanlan routing without ad blocking."
-    },
-    {
-      "id": "lanlan-beta",
-      "label": "Lanlan beta",
-      "useWhen": "Preview Lanlan rule changes separately from the stable template."
-    },
-    {
       "id": "hulter-mihomo",
       "label": "huLter Mihomo",
       "useWhen": "Use huLter's service-oriented Mihomo routing layout."

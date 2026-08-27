@@ -235,11 +235,6 @@ function withoutEmojiLabels(input: unknown): unknown {
 export const ACL4SSR_NO_EMOJI_TEMPLATE = withoutEmojiLabels(ACL4SSR_TEMPLATE) as RoutingTemplateConfig;
 
 const VENDORED_TEMPLATE_DEFINITIONS = [
-  ["lanlan-standard", "Lanlan 标准版"],
-  ["lanlan-no-ad", "Lanlan 无广告版"],
-  ["lanlan-lite", "Lanlan Lite"],
-  ["lanlan-lite-no-ad", "Lanlan Lite 无广告版"],
-  ["lanlan-beta", "Lanlan Beta"],
   ["aethersailor-standard", "Aethersailor 标准版"],
   ["aethersailor-fallback", "Aethersailor 故障转移版"],
   ["aethersailor-lite", "Aethersailor Lite"],

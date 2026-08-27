@@ -90,7 +90,7 @@ https://sub-store-cloudflare.<你的子域>.workers.dev/?token=<admin-token>
 Migration 会预置一个包含全部已启用 Source 的 `Daily` Collection。添加 Source 后可以直接编辑它：
 
 1. 不选择指定 Source 时，默认包含全部已启用 Source。
-2. 模板默认使用内置的 `aethersailor-standard`；Lanlan、Aethersailor 各版本和 huLter 均为独立模板，Worker 不会在线加载远程覆写脚本。
+2. 模板默认使用内置的 `aethersailor-standard`；Aethersailor 各版本和 huLter 均为独立模板，Worker 不会在线加载远程覆写脚本。
 3. 建议先启用端点去重和名称排序。
 4. 保存。
 

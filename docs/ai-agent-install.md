@@ -86,7 +86,6 @@ Source、Collection 和自定义 Template 的 ID 只能使用 1–64 位小写�
 ## 内置模板怎么选
 
 - `aethersailor-standard`：推荐默认值；Fallback、Lite、GFW、Full 和自建节点优先版本均为独立内置模板。
-- `lanlan-standard`：Lanlan 标准版；NoAd、Lite、Lite NoAd 和 Beta 版本均可独立选择。
 - `hulter-mihomo`：huLter 的 Mihomo 分流模板。
 - `acl4ssr-mihomo`：保留的 ACL4SSR 选项，适合已有配置。
 - `acl4ssr-mihomo-no-emoji`：ACL4SSR 的无 Emoji 版本。

@@ -7,11 +7,6 @@ const config = JSON.parse(readFileSync(inputPath, "utf8"));
 const rulePresets = JSON.parse(readFileSync(resolve("config/rule-presets.json"), "utf8"));
 
 const BUILTIN_TEMPLATE_IDS = new Set([
-  "lanlan-standard",
-  "lanlan-no-ad",
-  "lanlan-lite",
-  "lanlan-lite-no-ad",
-  "lanlan-beta",
   "aethersailor-standard",
   "aethersailor-fallback",
   "aethersailor-lite",

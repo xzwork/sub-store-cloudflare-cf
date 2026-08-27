@@ -255,9 +255,8 @@ describe("Worker and D1 integration", () => {
   it("serves code-owned built-ins and restores custom storage in one request", async () => {
     const templatesResponse = await workerRequest("/api/templates");
     const initialTemplates = getPath(await jsonObject(templatesResponse), "data");
-    expect(Array.isArray(initialTemplates) ? initialTemplates.length : 0).toBe(22);
+    expect(Array.isArray(initialTemplates) ? initialTemplates.length : 0).toBe(17);
     expect(Array.isArray(initialTemplates) ? initialTemplates.map((template) => getPath(template, "id")) : []).toEqual(expect.arrayContaining([
-      "lanlan-standard",
       "aethersailor-standard",
       "hulter-mihomo",
     ]));
