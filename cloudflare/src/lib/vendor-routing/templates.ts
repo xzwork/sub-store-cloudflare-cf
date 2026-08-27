@@ -16,7 +16,7 @@ export const VENDORED_ROUTING_TEMPLATES: Record<string, RoutingTemplateConfig> =
     ],
     "skip-auth-prefixes": [
       "127.0.0.1/8",
-      ":1/128"
+      "::1/128"
     ],
     "geodata-mode": false,
     "geodata-loader": "standard",
@@ -1839,7 +1839,7 @@ export const VENDORED_ROUTING_TEMPLATES: Record<string, RoutingTemplateConfig> =
     ],
     "skip-auth-prefixes": [
       "127.0.0.1/8",
-      ":1/128"
+      "::1/128"
     ],
     "geodata-mode": false,
     "geodata-loader": "standard",
@@ -3626,7 +3626,7 @@ export const VENDORED_ROUTING_TEMPLATES: Record<string, RoutingTemplateConfig> =
     ],
     "skip-auth-prefixes": [
       "127.0.0.1/8",
-      ":1/128"
+      "::1/128"
     ],
     "geodata-mode": false,
     "geodata-loader": "standard",
@@ -4486,7 +4486,7 @@ export const VENDORED_ROUTING_TEMPLATES: Record<string, RoutingTemplateConfig> =
     ],
     "skip-auth-prefixes": [
       "127.0.0.1/8",
-      ":1/128"
+      "::1/128"
     ],
     "geodata-mode": false,
     "geodata-loader": "standard",
@@ -5317,7 +5317,7 @@ export const VENDORED_ROUTING_TEMPLATES: Record<string, RoutingTemplateConfig> =
     ],
     "skip-auth-prefixes": [
       "127.0.0.1/8",
-      ":1/128"
+      "::1/128"
     ],
     "geodata-mode": false,
     "geodata-loader": "standard",

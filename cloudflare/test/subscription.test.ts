@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { parse as parseYaml } from "yaml";
 import {
   MAX_REMOTE_SOURCE_RESPONSE_BYTES,
   MAX_REMOTE_SOURCE_URLS,
 } from "../src/lib/limits";
 import { readResponseText } from "../src/lib/read";
 import { buildSubscription, buildSubscriptionResult, convertSubscriptionContent, normalizeTargetAlias, validateSubscriptionContent } from "../src/lib/subscription";
+import { VENDORED_ROUTING_TEMPLATES } from "../src/lib/vendor-routing/templates";
 
 describe("subscription parsing and limits", () => {
   afterEach(() => vi.restoreAllMocks());
@@ -36,6 +38,51 @@ describe("subscription parsing and limits", () => {
         target,
       });
       expect(output.length, `${target} output`).toBeGreaterThan(0);
+    }
+  });
+
+  it("renders every Lanlan template without invalid prefixes or dangling proxy groups", async () => {
+    const templateIds = ["lanlan-standard", "lanlan-no-ad", "lanlan-lite", "lanlan-lite-no-ad", "lanlan-beta"];
+    const allowedLiterals = new Set(["DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE"]);
+
+    for (const templateId of templateIds) {
+      const output = await buildSubscription({
+        source: {
+          id: templateId,
+          name: templateId,
+          type: "local",
+          url: "",
+          content: [
+            "trojan://password@hk.example.com:443#香港%20Node",
+            "trojan://password@us.example.com:443#US%20Node",
+          ].join("\n"),
+        },
+        sources: [],
+        requestUrl: new URL(`https://example.com/download/source/${templateId}/mihomo`),
+        target: "mihomo",
+        template: { id: templateId, target: "mihomo", config: VENDORED_ROUTING_TEMPLATES[templateId] },
+      });
+      const document = parseYaml(output) as {
+        proxies: Array<{ name: string }>;
+        "proxy-groups": Array<{ name: string; proxies: string[] }>;
+        "skip-auth-prefixes": string[];
+        "global-client-fingerprint"?: string;
+      };
+      const nodeNames = new Set(document.proxies.map((proxy) => proxy.name));
+      const groupNames = new Set(document["proxy-groups"].map((group) => group.name));
+
+      expect(document["skip-auth-prefixes"], templateId).toContain("::1/128");
+      expect(document["skip-auth-prefixes"], templateId).not.toContain(":1/128");
+      expect(document, templateId).not.toHaveProperty("global-client-fingerprint");
+      for (const group of document["proxy-groups"]) {
+        expect(group.proxies.length, `${templateId}:${group.name}`).toBeGreaterThan(0);
+        for (const member of group.proxies) {
+          expect(
+            nodeNames.has(member) || groupNames.has(member) || allowedLiterals.has(member),
+            `${templateId}:${group.name} references missing member ${member}`,
+          ).toBe(true);
+        }
+      }
     }
   });
 

@@ -1576,6 +1576,7 @@ function renderMihomoYaml(proxies: ProxyNode[], requestUrl: URL, template?: Rout
     "proxy-groups": _proxyGroupsAlias,
     ruleProviders: _ruleProviders,
     "rule-providers": _ruleProvidersAlias,
+    "global-client-fingerprint": _globalClientFingerprint,
     rules: _rules,
     ...extraConfig
   } = config;
@@ -1610,15 +1611,27 @@ function renderTemplateProxyGroups(proxies: ProxyNode[], groupTemplates: Templat
     ...group,
     proxies: expandGroupProxies(group, nodeNames),
   }));
-  const includedGroupNames = new Set(rawGroups.filter((group) => group.proxies.length > 0).map((group) => group.name));
   const allowedLiterals = new Set(["DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE"]);
+  const includedGroupNames = new Set(
+    rawGroups
+      .filter((group) => group.proxies.some((name) => nodeNames.includes(name) || allowedLiterals.has(name)))
+      .map((group) => group.name),
+  );
+
+  let previousSize = -1;
+  while (previousSize !== includedGroupNames.size) {
+    previousSize = includedGroupNames.size;
+    for (const group of rawGroups) {
+      if (group.proxies.some((name) => includedGroupNames.has(name))) includedGroupNames.add(group.name);
+    }
+  }
 
   return rawGroups
+    .filter((group) => includedGroupNames.has(group.name))
     .map((group) => {
       const proxyEntries = group.proxies.filter(
         (name) => nodeNames.includes(name) || includedGroupNames.has(name) || allowedLiterals.has(name),
       );
-      if (proxyEntries.length === 0) return undefined;
       const {
         filter: _filter,
         "exclude-filter": _excludeFilter,
@@ -1627,8 +1640,7 @@ function renderTemplateProxyGroups(proxies: ProxyNode[], groupTemplates: Templat
         ...rest
       } = group;
       return stripUndefined({ ...rest, proxies: uniqueStrings(proxyEntries) });
-    })
-    .filter(Boolean);
+    });
 }
 
 function expandGroupProxies(group: TemplateProxyGroup, nodeNames: string[]) {
