@@ -511,11 +511,12 @@ const flow = computed(() => {
     if (isFlowFetching.value && !urlList.includes(props.sub.url))
       return t("subPage.subItem.loading");
 
-    const target = toRaw(
+    const persistedTarget: Flow | undefined = props.sub.subscriptionInfo
+      ? { status: "success", data: { ...props.sub.subscriptionInfo } }
+      : undefined;
+    const target: Flow | ErrorResponse | undefined = toRaw(
       flows.value[props.sub.url] || flows.value[props.sub.name],
-    ) || (props.sub.subscriptionInfo
-      ? { status: "success", data: props.sub.subscriptionInfo }
-      : undefined);
+    ) || persistedTarget;
     if (!target) {
       return {
         firstLine: t("subPage.subItem.noRecord"),
@@ -554,17 +555,13 @@ const flow = computed(() => {
         && Number.isFinite(target.data.total))
     )) {
       const normalizedUsage = target.data.usage || {
-        upload: target.data.upload,
-        download: target.data.download,
+        upload: Number(target.data.upload ?? 0),
+        download: Number(target.data.download ?? 0),
       };
-      let {
-        planName,
-        appUrl,
-        remainingDays,
-        expires,
-        total,
-        usage: { upload, download },
-      } = { ...target.data, usage: normalizedUsage };
+      const { planName, appUrl, remainingDays } = target.data;
+      const { upload, download } = normalizedUsage;
+      const total = Number(target.data.total ?? 0);
+      let expires = target.data.expires;
       expires = expires ?? target.data.expire;
       if (target.hideExpire) expires = undefined;
       let progress = 0;
@@ -630,7 +627,7 @@ const flow = computed(() => {
           ? t("subPage.subItem.nodeCount", { count: target.data.nodeCount })
           : "";
         const used = upload + download;
-        const usagePercent = Number.isFinite(target.data.usagePercent)
+        const usagePercent = typeof target.data.usagePercent === "number" && Number.isFinite(target.data.usagePercent)
           ? target.data.usagePercent
           : total > 0 ? (used / total) * 100 : 0;
         const updatedLine = target.data.lastSuccessAt

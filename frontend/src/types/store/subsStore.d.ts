@@ -70,27 +70,37 @@ interface Collection {
   tag?: string[];
 }
 
-interface Flow {
-  status: 'success' | 'noFlow';
-  showRemaining?: boolean;
-  hideExpire?: boolean;
-  data: {
-    provided?: boolean;
-    used?: number;
-    remaining?: number;
-    usagePercent?: number;
-    nodeCount?: number;
-    lastSuccessAt?: number;
-    planName?: string;
-    appUrl?: string;
-    remainingDays?: number;
-    expires?: number;
-    total: number;
-    usage: {
-      upload: number;
-      download: number;
-    };
+interface FlowData {
+  provided?: boolean;
+  upload?: number;
+  download?: number;
+  used?: number;
+  remaining?: number;
+  usagePercent?: number;
+  nodeCount?: number;
+  lastSuccessAt?: number;
+  expire?: number;
+  planName?: string;
+  appUrl?: string;
+  remainingDays?: number;
+  expires?: number;
+  total?: number;
+  usage?: {
+    upload: number;
+    download: number;
   };
 }
+
+type Flow = {
+  status: 'success';
+  showRemaining?: boolean;
+  hideExpire?: boolean;
+  data: FlowData;
+} | {
+  status: 'noFlow';
+  showRemaining?: boolean;
+  hideExpire?: boolean;
+  data?: never;
+};
 
 type GetOne<T extends Sub | Collection> = (name: string) => T;
