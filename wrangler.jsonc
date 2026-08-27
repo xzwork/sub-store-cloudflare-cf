@@ -31,5 +31,11 @@
   ],
   "vars": {
     "SUB_STORE_APP_NAME": "Sub-Store Cloudflare"
-  }
+  },
+  "routes": [
+    {
+      "pattern": "sub.linuxzw.cn",
+      "custom_domain": true
+    }
+  ]
 }
