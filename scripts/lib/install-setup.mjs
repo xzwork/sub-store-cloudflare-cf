@@ -56,7 +56,7 @@ export function createQuickSetup(input = {}) {
       id: "daily",
       name: "Daily",
       sourceIds: [],
-      templateId: "powerfullz-override-rules",
+      templateId: "aethersailor-standard",
       ignoreFailed: true,
       filterPresetIds: ["dedupe-by-endpoint", "sort-by-name"],
       filters: [],

@@ -9,7 +9,7 @@ Follow AGENTS.md and agent/SKILL.md in this repository. Deploy this Sub-Store Cl
 如果你还没有整理订阅源，可以直接继续告诉 Agent：
 
 ```text
-我有几个远程订阅链接和一个自建节点。请你问我要缺失的信息，然后帮我创建一个 daily 组合订阅。默认用 powerfullz-override-rules，过滤掉官网、剩余、流量、过期、倍率这类信息节点，按 server + port 去重，再按名称排序。
+我有几个远程订阅链接和一个自建节点。请你问我要缺失的信息，然后帮我创建一个 daily 组合订阅。默认用 aethersailor-standard，过滤掉官网、剩余、流量、过期、倍率这类信息节点，按 server + port 去重，再按名称排序。
 ```
 
 English:

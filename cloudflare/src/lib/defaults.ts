@@ -1,8 +1,7 @@
-import { parse } from "yaml";
 import type { RoutingTemplateConfig, TemplateRecord } from "../types";
-import { POWERFULLZ_OVERRIDE_RULES_YAML } from "./powerfullz-override-rules";
+import { VENDORED_ROUTING_TEMPLATES } from "./vendor-routing/templates";
 
-export const DEFAULT_TEMPLATE_ID = "powerfullz-override-rules";
+export const DEFAULT_TEMPLATE_ID = "aethersailor-standard";
 
 const TEST_URL = "https://www.gstatic.com/generate_204";
 
@@ -72,8 +71,6 @@ export const MIHOMO_BASIC_TEMPLATE: RoutingTemplateConfig = {
     "MATCH,🐟 漏网之鱼",
   ],
 };
-
-export const POWERFULLZ_OVERRIDE_TEMPLATE = parse(POWERFULLZ_OVERRIDE_RULES_YAML) as RoutingTemplateConfig;
 
 export const ACL4SSR_TEMPLATE: RoutingTemplateConfig = {
   ...mihomoBase,
@@ -237,8 +234,34 @@ function withoutEmojiLabels(input: unknown): unknown {
 
 export const ACL4SSR_NO_EMOJI_TEMPLATE = withoutEmojiLabels(ACL4SSR_TEMPLATE) as RoutingTemplateConfig;
 
+const VENDORED_TEMPLATE_DEFINITIONS = [
+  ["lanlan-standard", "Lanlan 标准版"],
+  ["lanlan-no-ad", "Lanlan 无广告版"],
+  ["lanlan-lite", "Lanlan Lite"],
+  ["lanlan-lite-no-ad", "Lanlan Lite 无广告版"],
+  ["lanlan-beta", "Lanlan Beta"],
+  ["aethersailor-standard", "Aethersailor 标准版"],
+  ["aethersailor-fallback", "Aethersailor 故障转移版"],
+  ["aethersailor-lite", "Aethersailor Lite"],
+  ["aethersailor-lite-fallback", "Aethersailor Lite 故障转移版"],
+  ["aethersailor-gfw", "Aethersailor GFW 极简版"],
+  ["aethersailor-gfw-fallback", "Aethersailor GFW 极简故障转移版"],
+  ["aethersailor-full", "Aethersailor Full 重度分流版"],
+  ["aethersailor-full-fallback", "Aethersailor Full 重度分流故障转移版"],
+  ["aethersailor-selfhosted-manual-fallback", "Aethersailor 自建节点手动故障转移版"],
+  ["aethersailor-selfhosted-provider-fallback", "Aethersailor 自建节点 Provider 故障转移版"],
+  ["hulter-mihomo", "huLter Mihomo"],
+] as const;
+
+export const VENDORED_BUILTIN_TEMPLATES = VENDORED_TEMPLATE_DEFINITIONS.map(([id, name]) => ({
+  id,
+  name,
+  target: "mihomo" as const,
+  config: VENDORED_ROUTING_TEMPLATES[id],
+}));
+
 export const BUILTIN_TEMPLATES = [
-  { id: "powerfullz-override-rules", name: "powerfullz Override Rules", target: "mihomo", config: POWERFULLZ_OVERRIDE_TEMPLATE },
+  ...VENDORED_BUILTIN_TEMPLATES,
   { id: "mihomo-basic", name: "Mihomo Basic", target: "mihomo", config: MIHOMO_BASIC_TEMPLATE },
   { id: "acl4ssr-mihomo", name: "ACL4SSR Mihomo", target: "mihomo", config: ACL4SSR_TEMPLATE },
   { id: "acl4ssr-mihomo-no-emoji", name: "ACL4SSR Mihomo 无 Emoji", target: "mihomo", config: ACL4SSR_NO_EMOJI_TEMPLATE },
@@ -248,4 +271,4 @@ export const BUILTIN_TEMPLATES = [
 ] satisfies Array<Pick<TemplateRecord, "id" | "name" | "target" | "config">>;
 
 export const BUILTIN_TEMPLATE_IDS = new Set(BUILTIN_TEMPLATES.map((template) => template.id));
-export const DEFAULT_TEMPLATE_CONFIG = POWERFULLZ_OVERRIDE_TEMPLATE;
+export const DEFAULT_TEMPLATE_CONFIG = VENDORED_ROUTING_TEMPLATES[DEFAULT_TEMPLATE_ID];

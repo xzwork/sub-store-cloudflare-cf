@@ -84,7 +84,7 @@ Non-interactive Agent runs without `config/agent-setup.local.json` stop before d
 ## First five minutes after deployment
 
 1. Add a remote subscription or local node text on the Subscriptions page.
-2. Review the pre-created `Daily` Collection; create another only when needed. The vendored `powerfullz-override-rules` template is the default.
+2. Review the pre-created `Daily` Collection; create another only when needed. The vendored `aethersailor-standard` template is the default; Lanlan, each Aethersailor variant, and huLter remain separate choices.
 3. Start with cleanup, endpoint dedupe, and name sorting filters.
 4. Copy the Mihomo, sing-box, Surge, or other link from the Collection card.
 5. Export a backup from Settings and store both tokens safely.

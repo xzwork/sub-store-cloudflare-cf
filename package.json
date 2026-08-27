@@ -2,13 +2,13 @@
   "name": "sub-store-cloudflare-cf",
   "version": "1.1.0",
   "description": "Cloudflare-native subscription aggregation and routing template manager powered by Workers, Static Assets, D1, and Worker Secrets.",
-  "homepage": "https://github.com/realchendahuang/sub-store-cloudflare#readme",
+  "homepage": "https://github.com/xzwork/sub-store-cloudflare#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/realchendahuang/sub-store-cloudflare.git"
+    "url": "https://github.com/xzwork/sub-store-cloudflare.git"
   },
   "bugs": {
-    "url": "https://github.com/realchendahuang/sub-store-cloudflare/issues"
+    "url": "https://github.com/xzwork/sub-store-cloudflare/issues"
   },
   "license": "AGPL-3.0-or-later",
   "keywords": [

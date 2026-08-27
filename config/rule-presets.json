@@ -1,9 +1,84 @@
 {
   "templates": [
     {
-      "id": "powerfullz-override-rules",
-      "label": "powerfullz Override Rules",
-      "useWhen": "Recommended Mihomo default, vendored into the Worker with dynamic region groups and comprehensive routing."
+      "id": "aethersailor-standard",
+      "label": "Aethersailor standard",
+      "useWhen": "Recommended default with balanced service and region routing."
+    },
+    {
+      "id": "aethersailor-fallback",
+      "label": "Aethersailor fallback",
+      "useWhen": "Standard routing with ordered connectivity fallback groups."
+    },
+    {
+      "id": "aethersailor-lite",
+      "label": "Aethersailor lite",
+      "useWhen": "Fewer policy groups and simpler maintenance."
+    },
+    {
+      "id": "aethersailor-lite-fallback",
+      "label": "Aethersailor lite fallback",
+      "useWhen": "Lite routing with ordered connectivity fallback."
+    },
+    {
+      "id": "aethersailor-gfw",
+      "label": "Aethersailor GFW",
+      "useWhen": "Minimal proxy/direct routing based on the GFW list."
+    },
+    {
+      "id": "aethersailor-gfw-fallback",
+      "label": "Aethersailor GFW fallback",
+      "useWhen": "Minimal GFW routing with connectivity fallback."
+    },
+    {
+      "id": "aethersailor-full",
+      "label": "Aethersailor full",
+      "useWhen": "Most detailed service and region policy groups."
+    },
+    {
+      "id": "aethersailor-full-fallback",
+      "label": "Aethersailor full fallback",
+      "useWhen": "Full routing with ordered connectivity fallback."
+    },
+    {
+      "id": "aethersailor-selfhosted-manual-fallback",
+      "label": "Aethersailor self-hosted manual fallback",
+      "useWhen": "Prefer app nodes named as self-hosted nodes, with other nodes as fallback."
+    },
+    {
+      "id": "aethersailor-selfhosted-provider-fallback",
+      "label": "Aethersailor self-hosted provider fallback",
+      "useWhen": "Provider-style self-hosted preference adapted to app-managed sources."
+    },
+    {
+      "id": "lanlan-standard",
+      "label": "Lanlan standard",
+      "useWhen": "Full Lanlan routing with ad blocking."
+    },
+    {
+      "id": "lanlan-no-ad",
+      "label": "Lanlan no ads",
+      "useWhen": "Full Lanlan routing without ad-blocking rules."
+    },
+    {
+      "id": "lanlan-lite",
+      "label": "Lanlan lite",
+      "useWhen": "Geo-data-dependent lightweight Lanlan routing."
+    },
+    {
+      "id": "lanlan-lite-no-ad",
+      "label": "Lanlan lite no ads",
+      "useWhen": "Lightweight Lanlan routing without ad blocking."
+    },
+    {
+      "id": "lanlan-beta",
+      "label": "Lanlan beta",
+      "useWhen": "Preview Lanlan rule changes separately from the stable template."
+    },
+    {
+      "id": "hulter-mihomo",
+      "label": "huLter Mihomo",
+      "useWhen": "Use huLter's service-oriented Mihomo routing layout."
     },
     {
       "id": "acl4ssr-mihomo",
@@ -71,7 +146,7 @@
     {
       "id": "daily",
       "name": "Daily",
-      "templateId": "powerfullz-override-rules",
+      "templateId": "aethersailor-standard",
       "filterPresetIds": ["dedupe-by-endpoint", "sort-by-name"]
     }
   ]

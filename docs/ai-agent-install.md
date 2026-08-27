@@ -51,7 +51,7 @@ pnpm run install:cloudflare
 ```text
 我有三个远程订阅源，名字分别是 Airport A、Airport B、Home。
 我想创建一个 daily 组合订阅，包含全部订阅源。
-默认用 powerfullz-override-rules。
+默认用 aethersailor-standard。
 过滤掉名字里包含 官网、剩余、流量、过期、倍率 的节点。
 按 server + port 去重，最后按名称排序。
 ```
@@ -85,7 +85,9 @@ Source、Collection 和自定义 Template 的 ID 只能使用 1–64 位小写�
 
 ## 内置模板怎么选
 
-- `powerfullz-override-rules`：推荐默认值。上游静态覆写已写入项目，Worker 不会在线执行远程 JS；地区组按实际节点展开。
+- `aethersailor-standard`：推荐默认值；Fallback、Lite、GFW、Full 和自建节点优先版本均为独立内置模板。
+- `lanlan-standard`：Lanlan 标准版；NoAd、Lite、Lite NoAd 和 Beta 版本均可独立选择。
+- `hulter-mihomo`：huLter 的 Mihomo 分流模板。
 - `acl4ssr-mihomo`：保留的 ACL4SSR 选项，适合已有配置。
 - `acl4ssr-mihomo-no-emoji`：ACL4SSR 的无 Emoji 版本。
 - `mihomo-basic`：最小模板，方便检查和改造。

@@ -94,7 +94,7 @@ pnpm run tokens:generate
 ## 部署后的五分钟
 
 1. 在“订阅”页添加远程订阅 URL 或本地节点文本。
-2. 确认预置的 `Daily` Collection；需要其他组合时再新建，默认模板为内置的 `powerfullz-override-rules`。
+2. 确认预置的 `Daily` Collection；需要其他组合时再新建。默认使用内置的 `aethersailor-standard`，也可独立选择 Lanlan、Aethersailor 各版本或 huLter 模板。
 3. 保守起步只使用清理信息节点、端点去重和名称排序。
 4. 在 Collection 卡片复制 Mihomo、sing-box、Surge 等链接。
 5. 在“设置”页导出一次配置备份，并妥善保存两个 Token。

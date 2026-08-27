@@ -74,7 +74,7 @@ Ask only for missing inputs. Prefer reasonable defaults when the user does not c
   - `sourceIds: []` means all enabled sources; list ids to pin a collection to specific sources.
 - Rule template:
   - read `config/rule-presets.json`.
-  - default to `powerfullz-override-rules`, which is vendored into the Worker and does not execute a remote override script.
+  - default to `aethersailor-standard`; Lanlan, Aethersailor, and huLter rule templates are vendored into the Worker and selected independently.
 - Filters:
   - default collection filters: `dedupe-by-endpoint`, `sort-by-name`.
   - provider-info cleanup: `clean-provider-nodes`.
@@ -140,7 +140,9 @@ Do not claim deployment success until HTTP verification passes.
 
 ## Template Guidance
 
-- `powerfullz-override-rules`: recommended Mihomo default; the static override is bundled with the Worker and region groups are expanded from actual nodes.
+- `aethersailor-standard`: recommended Mihomo default; use the separate `fallback`, `lite`, `gfw`, or `full` variants when requested.
+- `lanlan-standard`: full Lanlan rules; separate `no-ad`, `lite`, `lite-no-ad`, and `beta` variants are also built in.
+- `hulter-mihomo`: huLter's Mihomo routing layout.
 - `acl4ssr-mihomo`: retained ACL4SSR option for existing configurations.
 - `acl4ssr-mihomo-no-emoji`: same ACL4SSR routing style with plain group names.
 - `mihomo-basic`: small and easy to inspect.

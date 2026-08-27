@@ -37,7 +37,7 @@
       "id": "daily",
       "name": "Daily",
       "sourceIds": ["airport-a", "home-node"],
-      "templateId": "powerfullz-override-rules",
+      "templateId": "aethersailor-standard",
       "ignoreFailed": true,
       "filterPresetIds": ["dedupe-by-endpoint", "sort-by-name"],
       "filters": [],

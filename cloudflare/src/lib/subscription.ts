@@ -1522,8 +1522,10 @@ function ensureUniqueProxyNames(proxies: ProxyNode[]) {
 
 function compileRegex(input: string, flags = "") {
   const normalizedFlags = [...new Set(flags.split(""))].join("");
-  if (input.startsWith("(?i)")) return new RegExp(input.slice(4), [...new Set(`i${normalizedFlags}`.split(""))].join(""));
-  return new RegExp(input, normalizedFlags);
+  const caseInsensitive = input.includes("(?i)");
+  const pattern = caseInsensitive ? input.replaceAll("(?i)", "") : input;
+  const finalFlags = caseInsensitive ? [...new Set(`i${normalizedFlags}`.split(""))].join("") : normalizedFlags;
+  return new RegExp(pattern, finalFlags);
 }
 
 function getByPath(input: Record<string, unknown>, path: string) {
@@ -1609,7 +1611,7 @@ function renderTemplateProxyGroups(proxies: ProxyNode[], groupTemplates: Templat
     proxies: expandGroupProxies(group, nodeNames),
   }));
   const includedGroupNames = new Set(rawGroups.filter((group) => group.proxies.length > 0).map((group) => group.name));
-  const allowedLiterals = new Set(["DIRECT", "REJECT"]);
+  const allowedLiterals = new Set(["DIRECT", "REJECT", "REJECT-DROP", "PASS", "COMPATIBLE"]);
 
   return rawGroups
     .map((group) => {
@@ -1630,10 +1632,10 @@ function renderTemplateProxyGroups(proxies: ProxyNode[], groupTemplates: Templat
 }
 
 function expandGroupProxies(group: TemplateProxyGroup, nodeNames: string[]) {
-  const entries = group.filter ? findNamesByRegex(nodeNames, group.filter) : [];
+  let entries = group["include-all"] ? [...nodeNames] : [];
+  if (group.filter) entries = findNamesByRegex(nodeNames, group.filter);
   const excludeFilter = typeof group["exclude-filter"] === "string" ? group["exclude-filter"] : "";
   const filteredEntries = excludeFilter ? entries.filter((name) => !compileRegex(excludeFilter).test(name)) : entries;
-  if (group["include-all"] && !group.filter) filteredEntries.push(...nodeNames);
   for (const item of group.proxies || []) {
     if (item === "$all") filteredEntries.push(...nodeNames);
     else filteredEntries.push(item);
