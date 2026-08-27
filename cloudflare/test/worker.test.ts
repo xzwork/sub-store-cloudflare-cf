@@ -23,6 +23,7 @@ describe("Worker and D1 integration", () => {
     expect(columns.results.map((row) => row.name)).toContain("meta_json");
     expect(await env.DB.prepare("SELECT COUNT(*) AS count FROM templates").first("count")).toBe(0);
     expect(await env.DB.prepare("SELECT COUNT(*) AS count FROM collections WHERE id = 'daily'").first("count")).toBe(1);
+    expect(await env.DB.prepare("SELECT template_id FROM collections WHERE id = 'daily'").first("template_id")).toBe("powerfullz-override-rules");
   });
 
   it("requires admin auth and returns hardened responses", async () => {
@@ -254,7 +255,8 @@ describe("Worker and D1 integration", () => {
   it("serves code-owned built-ins and restores custom storage in one request", async () => {
     const templatesResponse = await workerRequest("/api/templates");
     const initialTemplates = getPath(await jsonObject(templatesResponse), "data");
-    expect(Array.isArray(initialTemplates) ? initialTemplates.length : 0).toBe(6);
+    expect(Array.isArray(initialTemplates) ? initialTemplates.length : 0).toBe(7);
+    expect(Array.isArray(initialTemplates) ? initialTemplates.map((template) => getPath(template, "id")) : []).toContain("powerfullz-override-rules");
 
     const restoreResponse = await workerRequest("/api/storage", {
       method: "POST",

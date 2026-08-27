@@ -182,7 +182,13 @@ export default {
       noFlow: "不查询流量",
       noFlowInfo: "无流量信息",
       flowError: "无法获取流量信息",
-      noExpiresInfo: "无有效期信息"
+      noExpiresInfo: "无有效期信息",
+      nodeCount: "{count} 个节点",
+      remaining: "剩余",
+      usageRate: "使用率",
+      lastUpdated: "最近更新",
+      trafficNotProvided: "流量信息：未提供",
+      expireNotProvided: "到期时间：未提供"
     },
     deleteItem: {
       title: "删除",
@@ -826,6 +832,16 @@ export default {
         server: "服务器",
         password: "密码",
         UUID: "UUID"
+      },
+      subscription: {
+        title: "订阅信息",
+        owner: "所属订阅",
+        traffic: "订阅流量",
+        remaining: "剩余",
+        expires: "到期",
+        trafficNotProvided: "流量信息：未提供",
+        expireNotProvided: "到期时间：未提供",
+        localNode: "无订阅信息"
       }
     }
   },

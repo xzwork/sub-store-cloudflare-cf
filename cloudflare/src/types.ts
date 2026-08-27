@@ -124,6 +124,19 @@ export type SubscriptionResponseMetadata = {
   cacheStatus?: "hit" | "miss" | "refresh" | "stale" | "disabled";
 };
 
+export type RemoteSubscriptionInfo = {
+  provided: boolean;
+  upload?: number;
+  download?: number;
+  used?: number;
+  remaining?: number;
+  total?: number;
+  usagePercent?: number;
+  expire?: number;
+  nodeCount: number;
+  lastSuccessAt: number;
+};
+
 export type DownloadGrantRecord = {
   id: string;
   resourceType: "source" | "collection";

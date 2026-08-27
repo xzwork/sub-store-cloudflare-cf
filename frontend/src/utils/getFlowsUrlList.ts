@@ -6,7 +6,7 @@ export const getFlowsUrlList = (subs: Sub[]): string[][] => {
     if (sub.url && sub.source !== 'local' && !urlList.includes(sub.url)) {
       urlList.push(sub.url);
       nameList.push([sub.url, sub.name]);
-    } else if (sub.subUserinfo && !urlList.includes(sub.name)) {
+    } else if (sub.source !== 'local' && sub.subUserinfo && !urlList.includes(sub.name)) {
       urlList.push(sub.name);
       nameList.push([sub.name, sub.name]);
     }

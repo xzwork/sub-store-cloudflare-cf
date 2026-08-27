@@ -849,11 +849,11 @@ const selectedSubsDisplay = computed(() => selectedSubs.value.replace(/^:\s*/, "
     });
   });
   const openTemplatePicker = () => {
-    selectedTemplateValue.value = [form.templateId || templateColumns.value[0]?.value || "acl4ssr-mihomo"];
+    selectedTemplateValue.value = [form.templateId || templateColumns.value[0]?.value || "powerfullz-override-rules"];
     showTemplatePicker.value = true;
   };
   const handleTemplateConfirm = ({ selectedValue }) => {
-    const nextValue = selectedValue[0] ?? templateColumns.value[0]?.value ?? "acl4ssr-mihomo";
+    const nextValue = selectedValue[0] ?? templateColumns.value[0]?.value ?? "powerfullz-override-rules";
     selectedTemplateValue.value = [nextValue];
     form.templateId = nextValue;
     showTemplatePicker.value = false;
@@ -909,7 +909,7 @@ watchEffect(() => {
     switch (editType) {
       case "collections":
         form.subscriptions = [];
-        form.templateId = "acl4ssr-mihomo";
+        form.templateId = "powerfullz-override-rules";
         break;
       case "subs":
         form.source = "remote";
@@ -955,7 +955,7 @@ watchEffect(() => {
       form.subscriptions = Array.isArray(sourceData.subscriptions)
         ? [...sourceData.subscriptions]
         : [];
-      form.templateId = sourceData.templateId || "acl4ssr-mihomo";
+      form.templateId = sourceData.templateId || "powerfullz-override-rules";
       break;
     case "subs":
       form.source = sourceData.source;

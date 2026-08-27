@@ -1,6 +1,8 @@
+import { parse } from "yaml";
 import type { RoutingTemplateConfig, TemplateRecord } from "../types";
+import { POWERFULLZ_OVERRIDE_RULES_YAML } from "./powerfullz-override-rules";
 
-export const DEFAULT_TEMPLATE_ID = "acl4ssr-mihomo";
+export const DEFAULT_TEMPLATE_ID = "powerfullz-override-rules";
 
 const TEST_URL = "https://www.gstatic.com/generate_204";
 
@@ -70,6 +72,8 @@ export const MIHOMO_BASIC_TEMPLATE: RoutingTemplateConfig = {
     "MATCH,🐟 漏网之鱼",
   ],
 };
+
+export const POWERFULLZ_OVERRIDE_TEMPLATE = parse(POWERFULLZ_OVERRIDE_RULES_YAML) as RoutingTemplateConfig;
 
 export const ACL4SSR_TEMPLATE: RoutingTemplateConfig = {
   ...mihomoBase,
@@ -234,6 +238,7 @@ function withoutEmojiLabels(input: unknown): unknown {
 export const ACL4SSR_NO_EMOJI_TEMPLATE = withoutEmojiLabels(ACL4SSR_TEMPLATE) as RoutingTemplateConfig;
 
 export const BUILTIN_TEMPLATES = [
+  { id: "powerfullz-override-rules", name: "powerfullz Override Rules", target: "mihomo", config: POWERFULLZ_OVERRIDE_TEMPLATE },
   { id: "mihomo-basic", name: "Mihomo Basic", target: "mihomo", config: MIHOMO_BASIC_TEMPLATE },
   { id: "acl4ssr-mihomo", name: "ACL4SSR Mihomo", target: "mihomo", config: ACL4SSR_TEMPLATE },
   { id: "acl4ssr-mihomo-no-emoji", name: "ACL4SSR Mihomo 无 Emoji", target: "mihomo", config: ACL4SSR_NO_EMOJI_TEMPLATE },
@@ -243,4 +248,4 @@ export const BUILTIN_TEMPLATES = [
 ] satisfies Array<Pick<TemplateRecord, "id" | "name" | "target" | "config">>;
 
 export const BUILTIN_TEMPLATE_IDS = new Set(BUILTIN_TEMPLATES.map((template) => template.id));
-export const DEFAULT_TEMPLATE_CONFIG = ACL4SSR_TEMPLATE;
+export const DEFAULT_TEMPLATE_CONFIG = POWERFULLZ_OVERRIDE_TEMPLATE;

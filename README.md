@@ -1,12 +1,12 @@
 # Sub-Store Cloudflare
 
-[![Release](https://img.shields.io/github/v/release/realchendahuang/sub-store-cloudflare?include_prereleases&sort=semver)](https://github.com/realchendahuang/sub-store-cloudflare/releases)
-[![License: AGPL-3.0](https://img.shields.io/github/license/realchendahuang/sub-store-cloudflare)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/xzwork/sub-store-cloudflare?include_prereleases&sort=semver)](https://github.com/xzwork/sub-store-cloudflare/releases)
+[![License: AGPL-3.0](https://img.shields.io/github/license/xzwork/sub-store-cloudflare)](LICENSE)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/workers/)
 [![D1](https://img.shields.io/badge/Storage-D1-F38020?logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/d1/)
 [![Workers Free](https://img.shields.io/badge/Designed_for-Workers_Free-2F7DFF)](docs/upstream-compatibility.md)
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/realchendahuang/sub-store-cloudflare)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/xzwork/sub-store-cloudflare)
 
 把机场订阅、自建节点、节点处理和分流模板放到你自己的 Cloudflare Worker 中，最终只给客户端一个订阅链接。
 
@@ -65,7 +65,7 @@ node -e "const{randomBytes:r}=require('node:crypto');console.log(r(32).toString(
 需要 Git、Node.js 22+ 和 Corepack：
 
 ```bash
-git clone https://github.com/realchendahuang/sub-store-cloudflare.git
+git clone https://github.com/xzwork/sub-store-cloudflare.git
 cd sub-store-cloudflare
 corepack enable
 pnpm run install:cloudflare
@@ -94,7 +94,7 @@ pnpm run tokens:generate
 ## 部署后的五分钟
 
 1. 在“订阅”页添加远程订阅 URL 或本地节点文本。
-2. 确认预置的 `Daily` Collection；需要其他组合时再新建，模板可选 `acl4ssr-mihomo`。
+2. 确认预置的 `Daily` Collection；需要其他组合时再新建，默认模板为内置的 `powerfullz-override-rules`。
 3. 保守起步只使用清理信息节点、端点去重和名称排序。
 4. 在 Collection 卡片复制 Mihomo、sing-box、Surge 等链接。
 5. 在“设置”页导出一次配置备份，并妥善保存两个 Token。

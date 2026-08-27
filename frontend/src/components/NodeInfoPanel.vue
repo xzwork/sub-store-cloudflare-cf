@@ -15,6 +15,22 @@
             <span class="info-value">{{ value }}</span>
           </li>
         </ul>
+        <div v-if="sourceInfo" class="subscription-info">
+          <strong>{{ $t('comparePage.nodeInfo.subscription.title') }}</strong>
+          <template v-if="sourceInfo.type === 'remote'">
+            <p>{{ $t('comparePage.nodeInfo.subscription.owner') }}：{{ sourceInfo.name }}</p>
+            <template v-if="subscriptionInfo?.provided">
+              <p>{{ $t('comparePage.nodeInfo.subscription.traffic') }}：{{ trafficText }}</p>
+              <p>{{ $t('comparePage.nodeInfo.subscription.remaining') }}：{{ remainingText }}</p>
+              <p>{{ $t('comparePage.nodeInfo.subscription.expires') }}：{{ expiresText }}</p>
+            </template>
+            <template v-else>
+              <p>{{ $t('comparePage.nodeInfo.subscription.trafficNotProvided') }}</p>
+              <p>{{ $t('comparePage.nodeInfo.subscription.expireNotProvided') }}</p>
+            </template>
+          </template>
+          <p v-else>{{ $t('comparePage.nodeInfo.subscription.localNode') }}</p>
+        </div>
       </nut-tabpane>
       <nut-tabpane title="JSON">
         <div class="input-wrapper">
@@ -47,6 +63,9 @@
 <script lang="ts" setup>
   import { computed, onMounted, ref } from 'vue';
   import { useCloudflareApi } from '@/api/app';
+  import { getFlowValue } from '@/utils/flowTransfer';
+  import dayjs from 'dayjs';
+  import { useI18n } from 'vue-i18n';
 
   const emit = defineEmits(['close']);
   const props = defineProps<{
@@ -59,6 +78,22 @@
   const ipError = ref(false);
   const ipInfo = ref<Record<string, unknown>>({});
   const api = useCloudflareApi();
+  const { t } = useI18n();
+  const sourceInfo = computed(() => props.nodeInfo.__source);
+  const subscriptionInfo = computed(() => sourceInfo.value?.subscriptionInfo);
+  const trafficText = computed(() => {
+    const info = subscriptionInfo.value;
+    if (!info?.provided || info.used === undefined || info.total === undefined) return '';
+    return `${getFlowValue(info.used)} / ${getFlowValue(info.total)}`;
+  });
+  const remainingText = computed(() => {
+    const value = subscriptionInfo.value?.remaining;
+    return value === undefined ? '' : getFlowValue(value);
+  });
+  const expiresText = computed(() => {
+    const value = subscriptionInfo.value?.expire;
+    return value ? dayjs.unix(value).format('YYYY-MM-DD') : t('subPage.subItem.noExpiresInfo');
+  });
 
   const loadIpInfo = async () => {
     ipLoading.value = true;
@@ -80,6 +115,7 @@
         case 'id':
         case 'type':
         case 'name':
+        case '__source':
           break;
         default:
           result[key] = props.nodeInfo[key];
@@ -139,6 +175,19 @@
     justify-content: center;
     padding: 0 20px;
     text-align: center;
+  }
+
+  .subscription-info {
+    margin: 16px 12px 0;
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--lowest-background-color);
+    color: var(--comment-text-color);
+    font-size: 12px;
+
+    p {
+      margin: 6px 0 0;
+    }
   }
 
   .ip-api-loading {

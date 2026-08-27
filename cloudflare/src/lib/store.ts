@@ -10,6 +10,7 @@ import type {
   AppConfig,
   CollectionRecord,
   FilterRule,
+  RemoteSubscriptionInfo,
   SourceRecord,
   SubscriptionCollection,
   SubscriptionSource,
@@ -135,6 +136,20 @@ export async function upsertSource(env: SubStoreEnv, input: Partial<SourceRecord
 export async function getSource(env: SubStoreEnv, id: string) {
   const row = await env.DB.prepare("SELECT * FROM sources WHERE id = ?").bind(id).first<SourceRow>();
   return row ? sourceFromRow(row) : undefined;
+}
+
+export async function updateRemoteSubscriptionInfo(
+  env: SubStoreEnv,
+  id: string,
+  subscriptionInfo: RemoteSubscriptionInfo,
+) {
+  const source = await getSource(env, id);
+  if (!source || source.type !== "remote") return undefined;
+  const meta = { ...source.meta, subscriptionInfo };
+  await env.DB.prepare("UPDATE sources SET meta_json = ? WHERE id = ?")
+    .bind(JSON.stringify(meta), id)
+    .run();
+  return subscriptionInfo;
 }
 
 export async function deleteSource(env: SubStoreEnv, id: string) {

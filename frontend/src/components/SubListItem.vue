@@ -387,7 +387,7 @@ import { useAppNotifyStore } from "@/store/appNotify";
 import { useGlobalStore } from "@/store/global";
 import { useSettingsStore } from "@/store/settings";
 import { useSubsStore } from "@/store/subs";
-import { getString } from "@/utils/flowTransfer";
+import { getFlowValue, getString } from "@/utils/flowTransfer";
 import { isMobile } from "@/utils/isMobile";
 import CompareTable from "@/views/CompareTable.vue";
 
@@ -507,13 +507,15 @@ const simpleCollectionDetailLine = computed(() => {
 const flow = computed(() => {
   if (props.type === "sub") {
     const urlList = Object.keys(flows.value);
-    if (props.sub.source === "local" && !props.sub.subUserinfo) return t("subPage.subItem.local");
+    if (props.sub.source === "local") return t("subPage.subItem.local");
     if (isFlowFetching.value && !urlList.includes(props.sub.url))
       return t("subPage.subItem.loading");
 
     const target = toRaw(
       flows.value[props.sub.url] || flows.value[props.sub.name],
-    );
+    ) || (props.sub.subscriptionInfo
+      ? { status: "success", data: props.sub.subscriptionInfo }
+      : undefined);
     if (!target) {
       return {
         firstLine: t("subPage.subItem.noRecord"),
@@ -532,7 +534,29 @@ const flow = computed(() => {
         firstLine: t("subPage.subItem.noFlow"),
         secondLine: ``,
       };
-    } else if (target.status === "success" && target.data?.usage) {
+    } else if (target.status === "success" && target.data?.provided === false) {
+      const nodeLine = Number.isFinite(target.data.nodeCount)
+        ? t("subPage.subItem.nodeCount", { count: target.data.nodeCount })
+        : "";
+      const updatedLine = target.data.lastSuccessAt
+        ? `${t("subPage.subItem.lastUpdated")}: ${dayjs(target.data.lastSuccessAt).format("YYYY-MM-DD HH:mm")}`
+        : "";
+      return {
+        firstLine: [nodeLine, t("subPage.subItem.trafficNotProvided")].filter(Boolean).join(" · "),
+        secondLine: [t("subPage.subItem.expireNotProvided"), updatedLine].filter(Boolean).join(" · "),
+        progress: 0,
+      };
+    } else if (target.status === "success" && (
+      target.data?.usage
+      || (target.data?.provided
+        && Number.isFinite(target.data.upload)
+        && Number.isFinite(target.data.download)
+        && Number.isFinite(target.data.total))
+    )) {
+      const normalizedUsage = target.data.usage || {
+        upload: target.data.upload,
+        download: target.data.download,
+      };
       let {
         planName,
         appUrl,
@@ -540,7 +564,8 @@ const flow = computed(() => {
         expires,
         total,
         usage: { upload, download },
-      } = target.data;
+      } = { ...target.data, usage: normalizedUsage };
+      expires = expires ?? target.data.expire;
       if (target.hideExpire) expires = undefined;
       let progress = 0;
       try {
@@ -563,17 +588,23 @@ const flow = computed(() => {
             ? `${secondLine} | ${expiresInfo}`
             : expiresInfo;
         }
+        const nodeLine = Number.isFinite(target.data.nodeCount)
+          ? t("subPage.subItem.nodeCount", { count: target.data.nodeCount })
+          : "";
+        const updatedLine = target.data.lastSuccessAt
+          ? `${t("subPage.subItem.lastUpdated")}: ${dayjs(target.data.lastSuccessAt).format("YYYY-MM-DD HH:mm")}`
+          : "";
         return {
           planName,
           appUrl,
-          firstLine: `${getString(
+          firstLine: [nodeLine, `${getString(
             target.showRemaining
               ? total - upload - download
               : upload + download,
             total,
             "B",
-          )}`,
-          secondLine,
+          )}`, `${t("subPage.subItem.remaining")}: ${getFlowValue(total - upload - download)}`].filter(Boolean).join(" · "),
+          secondLine: [secondLine, updatedLine].filter(Boolean).join(" · "),
           progress,
         };
       } else {
@@ -595,10 +626,20 @@ const flow = computed(() => {
             ? `${secondLine} | ${expiresInfo}`
             : expiresInfo;
         }
+        const nodeLine = Number.isFinite(target.data.nodeCount)
+          ? t("subPage.subItem.nodeCount", { count: target.data.nodeCount })
+          : "";
+        const used = upload + download;
+        const usagePercent = Number.isFinite(target.data.usagePercent)
+          ? target.data.usagePercent
+          : total > 0 ? (used / total) * 100 : 0;
+        const updatedLine = target.data.lastSuccessAt
+          ? `${t("subPage.subItem.lastUpdated")}: ${dayjs(target.data.lastSuccessAt).format("YYYY-MM-DD HH:mm")}`
+          : "";
         return {
           planName,
           appUrl,
-          firstLine: `${t(
+          firstLine: [nodeLine, `${t(
             target.showRemaining
               ? "subPage.subItem.showRemainingFlow"
               : "subPage.subItem.flow",
@@ -608,8 +649,8 @@ const flow = computed(() => {
               : upload + download,
             total,
             "B",
-          )}`,
-          secondLine,
+          )}`, `${t("subPage.subItem.remaining")}: ${getFlowValue(total - used)}`, `${t("subPage.subItem.usageRate")}: ${usagePercent.toFixed(1)}%`].filter(Boolean).join(" · "),
+          secondLine: [secondLine, updatedLine].filter(Boolean).join(" · "),
           progress,
         };
       }

@@ -7,6 +7,7 @@ const config = JSON.parse(readFileSync(inputPath, "utf8"));
 const rulePresets = JSON.parse(readFileSync(resolve("config/rule-presets.json"), "utf8"));
 
 const BUILTIN_TEMPLATE_IDS = new Set([
+  "powerfullz-override-rules",
   "mihomo-basic",
   "acl4ssr-mihomo",
   "acl4ssr-mihomo-no-emoji",
@@ -98,7 +99,7 @@ for (const collection of collections) {
     if (!sourceIds.has(sourceId)) errors.push(`collections.${id}.sourceIds references missing source: ${sourceId}`);
   }
 
-  const templateId = stringValue(collection.templateId) || "acl4ssr-mihomo";
+  const templateId = stringValue(collection.templateId) || "powerfullz-override-rules";
   validateId(templateId, `collections.${id}.templateId`);
   if (!templateIds.has(templateId)) errors.push(`collections.${id}.templateId references missing template: ${templateId}`);
   validateFilterPresetIds(collection.filterPresetIds, `collections.${id}.filterPresetIds`);

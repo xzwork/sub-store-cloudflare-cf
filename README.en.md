@@ -1,12 +1,12 @@
 # Sub-Store Cloudflare
 
-[![Release](https://img.shields.io/github/v/release/realchendahuang/sub-store-cloudflare?include_prereleases&sort=semver)](https://github.com/realchendahuang/sub-store-cloudflare/releases)
-[![License: AGPL-3.0](https://img.shields.io/github/license/realchendahuang/sub-store-cloudflare)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/xzwork/sub-store-cloudflare?include_prereleases&sort=semver)](https://github.com/xzwork/sub-store-cloudflare/releases)
+[![License: AGPL-3.0](https://img.shields.io/github/license/xzwork/sub-store-cloudflare)](LICENSE)
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/workers/)
 [![D1](https://img.shields.io/badge/Storage-D1-F38020?logo=cloudflare&logoColor=white)](https://developers.cloudflare.com/d1/)
 [![Workers Free](https://img.shields.io/badge/Designed_for-Workers_Free-2F7DFF)](docs/upstream-compatibility.md)
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/realchendahuang/sub-store-cloudflare)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/xzwork/sub-store-cloudflare)
 
 Run subscription sources, self-hosted nodes, processing actions, and routing templates in your own Cloudflare Worker, then give each client one final subscription URL.
 
@@ -59,7 +59,7 @@ See the Chinese [five-minute quick start](docs/quick-start.md) for the complete 
 Requires Git, Node.js 22+, and Corepack:
 
 ```bash
-git clone https://github.com/realchendahuang/sub-store-cloudflare.git
+git clone https://github.com/xzwork/sub-store-cloudflare.git
 cd sub-store-cloudflare
 corepack enable
 pnpm run install:cloudflare
@@ -84,7 +84,7 @@ Non-interactive Agent runs without `config/agent-setup.local.json` stop before d
 ## First five minutes after deployment
 
 1. Add a remote subscription or local node text on the Subscriptions page.
-2. Review the pre-created `Daily` Collection; create another only when needed. `acl4ssr-mihomo` is the recommended template.
+2. Review the pre-created `Daily` Collection; create another only when needed. The vendored `powerfullz-override-rules` template is the default.
 3. Start with cleanup, endpoint dedupe, and name sorting filters.
 4. Copy the Mihomo, sing-box, Surge, or other link from the Collection card.
 5. Export a backup from Settings and store both tokens safely.

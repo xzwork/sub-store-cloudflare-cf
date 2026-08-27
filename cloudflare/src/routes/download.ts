@@ -3,7 +3,7 @@ import type { Context } from "hono";
 import { failed, isTokenValid } from "../lib/http";
 import { authorizeScopedDownload } from "../lib/compatibility-resources";
 import { buildSubscriptionResult, getTargetContentType, normalizeTarget, normalizeTargetAlias } from "../lib/subscription";
-import { getRoutingTemplate, getSettings, getSource, getSubscriptionCollection, getSubscriptionSources } from "../lib/store";
+import { getRoutingTemplate, getSettings, getSource, getSubscriptionCollection, getSubscriptionSources, updateRemoteSubscriptionInfo } from "../lib/store";
 import type { SubscriptionCollection, SubscriptionSource, SubscriptionTarget } from "../types";
 
 export const downloadRoutes = new Hono<{ Bindings: SubStoreEnv }>();
@@ -82,6 +82,9 @@ async function renderDownload(
       requestUserAgent: c.req.header("user-agent") || "",
       forceRefresh: ["1", "true"].includes(c.req.query("refresh") || c.req.query("noCache") || ""),
       waitUntil: (promise) => c.executionCtx.waitUntil(promise),
+      onRemoteSourceFetched: sourceOverride
+        ? undefined
+        : (remoteSource, info) => updateRemoteSubscriptionInfo(c.env, remoteSource.id, info),
     });
     const headers = new Headers({
       "content-type": getTargetContentType(options.target),

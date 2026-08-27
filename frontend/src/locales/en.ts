@@ -182,7 +182,13 @@ export default {
       noFlow: "No flow",
       noFlowInfo: "No flow info",
       flowError: "Failed to get usage",
-      noExpiresInfo: "No expires info"
+      noExpiresInfo: "No expires info",
+      nodeCount: "{count} nodes",
+      remaining: "Remaining",
+      usageRate: "Usage",
+      lastUpdated: "Last updated",
+      trafficNotProvided: "Traffic: not provided",
+      expireNotProvided: "Expires: not provided"
     },
     deleteItem: {
       title: "Delete",
@@ -826,6 +832,16 @@ export default {
         server: "Server",
         password: "Password",
         UUID: "UUID"
+      },
+      subscription: {
+        title: "Subscription",
+        owner: "Source",
+        traffic: "Traffic",
+        remaining: "Remaining",
+        expires: "Expires",
+        trafficNotProvided: "Traffic: not provided",
+        expireNotProvided: "Expires: not provided",
+        localNode: "No subscription info"
       }
     }
   },

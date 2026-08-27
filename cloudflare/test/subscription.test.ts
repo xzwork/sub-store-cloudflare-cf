@@ -5,6 +5,7 @@ import {
 } from "../src/lib/limits";
 import { readResponseText } from "../src/lib/read";
 import { buildSubscription, buildSubscriptionResult, convertSubscriptionContent, normalizeTargetAlias, validateSubscriptionContent } from "../src/lib/subscription";
+import { POWERFULLZ_OVERRIDE_TEMPLATE } from "../src/lib/defaults";
 
 describe("subscription parsing and limits", () => {
   afterEach(() => vi.restoreAllMocks());
@@ -37,6 +38,33 @@ describe("subscription parsing and limits", () => {
       });
       expect(output.length, `${target} output`).toBeGreaterThan(0);
     }
+  });
+
+  it("renders the vendored powerfullz rules with groups derived from actual nodes", async () => {
+    const output = await buildSubscription({
+      source: {
+        id: "powerfullz",
+        name: "powerfullz",
+        type: "local",
+        url: "",
+        content: [
+          "trojan://password@hk.example.com:443#香港%20Node",
+          "trojan://password@us.example.com:443#US%20Node",
+        ].join("\n"),
+      },
+      sources: [],
+      requestUrl: new URL("https://example.com/download/source/powerfullz/mihomo"),
+      target: "mihomo",
+      template: { id: "powerfullz-override-rules", target: "mihomo", config: POWERFULLZ_OVERRIDE_TEMPLATE },
+    });
+
+    expect(output).toContain("name: 香港节点");
+    expect(output).toContain("name: 美国节点");
+    expect(output).not.toContain("name: 台湾节点");
+    expect(output).toContain("GEOSITE,category-ai-!cn,AI服务");
+    expect(output).toContain("geodata-mode: true");
+    expect(output).not.toContain("include-all:");
+    expect(output).not.toContain("convert.min.js");
   });
 
   it("parses JSON5 and converts Surge Mac-only node types", async () => {

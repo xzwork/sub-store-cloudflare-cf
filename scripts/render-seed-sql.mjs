@@ -67,7 +67,7 @@ function normalizeCollection(collection) {
     name: stringValue(collection.name, id),
     sourceIds: array(collection.sourceIds),
     filters: expandFilters(collection),
-    templateId: stringValue(collection.templateId, "acl4ssr-mihomo"),
+    templateId: stringValue(collection.templateId, "powerfullz-override-rules"),
     ignoreFailed: collection.ignoreFailed !== false,
     enabled: collection.enabled !== false,
     meta: object(collection.meta),

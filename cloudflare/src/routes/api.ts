@@ -8,6 +8,7 @@ import { MAX_API_BODY_BYTES, MAX_FLOW_RESPONSE_BYTES } from "../lib/limits";
 import { readResponseText } from "../lib/read";
 import { convertRules, type RuleTarget } from "../lib/rules";
 import { listScriptMetadata, validateScriptActions } from "../lib/scripts";
+import { createRemoteSubscriptionInfo } from "../lib/subscription-info";
 import {
   archiveAndDeleteResource,
   createDownloadGrant,
@@ -34,14 +35,16 @@ import {
   sortCollections,
   sortSources,
   updateSettings,
+  updateRemoteSubscriptionInfo,
   upsertCollection,
   upsertSource,
   upsertTemplate,
 } from "../lib/store";
-import { convertSubscriptionContent, normalizeTargetAlias, previewSourceContent, previewSubscription } from "../lib/subscription";
+import { buildSubscriptionResult, convertSubscriptionContent, normalizeTargetAlias, previewSourceContent, previewSubscription } from "../lib/subscription";
 import type {
   CollectionRecord,
   FilterRule,
+  RemoteSubscriptionInfo,
   SourceRecord,
   SubscriptionCollection,
   SubscriptionSource,
@@ -369,7 +372,12 @@ apiRoutes.post("/preview/source", async (c) => {
       return success(c, await previewSourceContent(toSubscriptionSource(input), await getSettings(c.env)));
     }
     const source = toSubscriptionSource(input);
-    return success(c, await previewSubscription({ source, sources: [source], settings: await getSettings(c.env) }));
+    return success(c, await previewSubscription({
+      source,
+      sources: [source],
+      settings: await getSettings(c.env),
+      onRemoteSourceFetched: (remoteSource, info) => updateRemoteSubscriptionInfo(c.env, remoteSource.id, info),
+    }));
   } catch (error) {
     return failed(c, error instanceof Error ? error.message : String(error), 400);
   }
@@ -378,7 +386,12 @@ apiRoutes.post("/preview/source", async (c) => {
 apiRoutes.post("/preview/collection", async (c) => {
   const input = await c.req.json<JsonMap>();
   try {
-    return success(c, await previewSubscription({ collection: toSubscriptionCollection(input), sources: await getSubscriptionSources(c.env), settings: await getSettings(c.env) }));
+    return success(c, await previewSubscription({
+      collection: toSubscriptionCollection(input),
+      sources: await getSubscriptionSources(c.env),
+      settings: await getSettings(c.env),
+      onRemoteSourceFetched: (remoteSource, info) => updateRemoteSubscriptionInfo(c.env, remoteSource.id, info),
+    }));
   } catch (error) {
     return failed(c, error instanceof Error ? error.message : String(error), 400);
   }
@@ -402,15 +415,55 @@ apiRoutes.get("/link/collection/:name", async (c) => {
 apiRoutes.get("/source/flow/:name", async (c) => {
   const sub = await getSource(c.env, c.req.param("name"));
   if (!sub) return flowFailed(c, "Source not found", 404);
-  const parsed = parseFlowRequest(toApiSource(sub), await getSettings(c.env));
+  if (sub.type !== "remote") return flowFailed(c, "No flow info");
+  const settings = await getSettings(c.env);
+  const parsed = parseFlowRequest(toApiSource(sub), settings);
   if (!parsed) return flowFailed(c, "No flow info");
 
   try {
-    const headers = await fetchFlowHeaders(parsed);
-    const flow = parseFlowHeaders([stringValue(sub.meta.subUserinfo), headers].filter(Boolean).join("; "));
-    if (!flow) return flowFailed(c, "No flow info");
-    return success(c, flow);
+    const args = parseUrlArguments(sub.url);
+    if (stringValue(args.flowUrl)) {
+      const headers = await fetchFlowHeaders(parsed);
+      const raw = [stringValue(sub.meta.subUserinfo), headers].filter(Boolean).join("; ");
+      const previous = objectValue(sub.meta.subscriptionInfo);
+      const info = createRemoteSubscriptionInfo(raw, numberValue(previous.nodeCount, 0, 0, Number.MAX_SAFE_INTEGER));
+      await updateRemoteSubscriptionInfo(c.env, sub.id, info);
+      return success(c, { ...parseFlowHeaders(raw), ...info });
+    }
+
+    const source = toSubscriptionSource(toApiSource(sub));
+    let refreshedInfo: RemoteSubscriptionInfo | undefined;
+    const result = await buildSubscriptionResult({
+      source,
+      sources: [source],
+      requestUrl: new URL(c.req.url),
+      target: "json",
+      settings,
+      forceRefresh: true,
+      waitUntil: (promise) => c.executionCtx.waitUntil(promise),
+      onRemoteSourceFetched: async (remoteSource, fetchedInfo) => {
+        const raw = [stringValue(sub.meta.subUserinfo), subscriptionInfoHeader(fetchedInfo)].filter(Boolean).join("; ");
+        const mergedInfo = raw
+          ? createRemoteSubscriptionInfo(raw, fetchedInfo.nodeCount, fetchedInfo.lastSuccessAt)
+          : fetchedInfo;
+        refreshedInfo = mergedInfo;
+        await updateRemoteSubscriptionInfo(c.env, remoteSource.id, mergedInfo);
+      },
+    });
+    if (result.metadata.cacheStatus === "stale") {
+      const previous = objectValue(sub.meta.subscriptionInfo);
+      if (typeof previous.lastSuccessAt === "number") return success(c, { ...previous, stale: true });
+      return flowFailed(c, "Remote source refresh failed", 500);
+    }
+    const info = refreshedInfo || createRemoteSubscriptionInfo(
+      [stringValue(sub.meta.subUserinfo), result.metadata.subscriptionUserinfo].filter(Boolean).join("; "),
+      result.nodes,
+    );
+    if (!refreshedInfo) await updateRemoteSubscriptionInfo(c.env, sub.id, info);
+    return success(c, { ...parseFlowHeaders([stringValue(sub.meta.subUserinfo), result.metadata.subscriptionUserinfo].filter(Boolean).join("; ")), ...info });
   } catch (error) {
+    const previous = objectValue(sub.meta.subscriptionInfo);
+    if (typeof previous.lastSuccessAt === "number") return success(c, { ...previous, stale: true });
     return flowFailed(c, error instanceof Error ? error.message : String(error), 500);
   }
 });
@@ -516,7 +569,9 @@ function fromApiSource(input: JsonMap, partial = false): Partial<SourceRecord> {
 }
 
 function mergeSource(existing: SourceRecord, next: Partial<SourceRecord>) {
-  return { ...existing, ...next, id: existing.id, meta: { ...existing.meta, ...next.meta } };
+  const source = { ...existing, ...next, id: existing.id, meta: { ...existing.meta, ...next.meta } };
+  if (source.type === "local") delete source.meta.subscriptionInfo;
+  return source;
 }
 
 function toApiCollection(collection: CollectionRecord) {
@@ -793,6 +848,7 @@ async function fetchFlowHeaders(input: FlowRequest) {
       headers: { "user-agent": input.userAgent, ...input.headers },
       signal: controller.signal,
     });
+    if (!response.ok) throw new Error(`Flow source failed: ${response.status}`);
     const headerFlow = response.headers.get("subscription-userinfo");
     const appUrl = response.headers.get("profile-web-page-url");
     const planName = response.headers.get("profile-title") || response.headers.get("plan-name");
@@ -823,6 +879,16 @@ function parseFlowHeaders(flowHeaders: string) {
     appUrl: textField(flowHeaders, "app_url"),
     planName: textField(flowHeaders, "plan_name"),
   };
+}
+
+function subscriptionInfoHeader(info: RemoteSubscriptionInfo) {
+  if (!info.provided) return "";
+  return [
+    `upload=${info.upload || 0}`,
+    `download=${info.download || 0}`,
+    `total=${info.total || 0}`,
+    info.expire !== undefined ? `expire=${info.expire}` : "",
+  ].filter(Boolean).join("; ");
 }
 
 function numberField(input: string, key: string) {

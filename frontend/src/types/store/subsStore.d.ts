@@ -4,6 +4,20 @@ interface SubsStoreState {
   flows: FlowsDict;
 }
 
+interface SubscriptionInfo {
+  provided: boolean;
+  upload?: number;
+  download?: number;
+  used?: number;
+  remaining?: number;
+  total?: number;
+  usagePercent?: number;
+  expire?: number;
+  nodeCount: number;
+  lastSuccessAt: number;
+  stale?: boolean;
+}
+
 interface FlowsDict {
   [key: string]: Flow | ErrorResponse;
 }
@@ -39,6 +53,7 @@ interface Sub {
   isIconColor?: boolean;
   ua?: string;
   subUserinfo?: string;
+  subscriptionInfo?: SubscriptionInfo;
   tag?: string[];
   process: Process[];
 }
@@ -60,6 +75,12 @@ interface Flow {
   showRemaining?: boolean;
   hideExpire?: boolean;
   data: {
+    provided?: boolean;
+    used?: number;
+    remaining?: number;
+    usagePercent?: number;
+    nodeCount?: number;
+    lastSuccessAt?: number;
     planName?: string;
     appUrl?: string;
     remainingDays?: number;

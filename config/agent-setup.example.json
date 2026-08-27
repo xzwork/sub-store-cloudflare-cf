@@ -37,7 +37,7 @@
       "id": "daily",
       "name": "Daily",
       "sourceIds": ["airport-a", "home-node"],
-      "templateId": "acl4ssr-mihomo",
+      "templateId": "powerfullz-override-rules",
       "ignoreFailed": true,
       "filterPresetIds": ["dedupe-by-endpoint", "sort-by-name"],
       "filters": [],

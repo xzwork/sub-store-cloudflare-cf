@@ -14,3 +14,9 @@ export const getString = (current: number, total: number, unit: Unit) => {
   const totalT = flowTransfer(total, unit);
   return `${currT.value} ${currT.unit} / ${totalT.value} ${totalT.unit}`;
 };
+
+export const getFlowValue = (value: number, unit: Unit = 'B') => {
+  const transferred = flowTransfer(Math.abs(value), unit);
+  const prefix = value < 0 ? '-' : '';
+  return `${prefix}${transferred.value} ${transferred.unit}`;
+};

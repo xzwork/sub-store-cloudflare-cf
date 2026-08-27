@@ -1,6 +1,11 @@
 {
   "templates": [
     {
+      "id": "powerfullz-override-rules",
+      "label": "powerfullz Override Rules",
+      "useWhen": "Recommended Mihomo default, vendored into the Worker with dynamic region groups and comprehensive routing."
+    },
+    {
       "id": "acl4ssr-mihomo",
       "label": "ACL4SSR default",
       "useWhen": "Balanced default for most users, with ad blocking, AI, media, Telegram, Apple, Microsoft, China direct, and fallback routing."
@@ -66,7 +71,7 @@
     {
       "id": "daily",
       "name": "Daily",
-      "templateId": "acl4ssr-mihomo",
+      "templateId": "powerfullz-override-rules",
       "filterPresetIds": ["dedupe-by-endpoint", "sort-by-name"]
     }
   ]

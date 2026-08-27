@@ -56,7 +56,7 @@ export function createQuickSetup(input = {}) {
       id: "daily",
       name: "Daily",
       sourceIds: [],
-      templateId: "acl4ssr-mihomo",
+      templateId: "powerfullz-override-rules",
       ignoreFailed: true,
       filterPresetIds: ["dedupe-by-endpoint", "sort-by-name"],
       filters: [],

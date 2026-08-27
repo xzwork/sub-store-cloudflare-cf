@@ -29,6 +29,12 @@ interface NodeInfo {
   'skip-cert-verify'?: boolean;
   tfo?: boolean;
   udp?: boolean;
+  __source?: {
+    id: string;
+    name: string;
+    type: 'remote' | 'local';
+    subscriptionInfo?: SubscriptionInfo;
+  };
   type?:
     | 'trojan'
     | 'ss'

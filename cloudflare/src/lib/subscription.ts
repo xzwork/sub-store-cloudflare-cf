@@ -9,10 +9,12 @@ import {
 } from "./limits";
 import { readResponseText, utf8ByteLength } from "./read";
 import { applyScriptAction, validateScriptActions } from "./scripts";
+import { createRemoteSubscriptionInfo, shouldPersistRemoteFetch } from "./subscription-info";
 import type {
   AppSettings,
   FilterRule,
   ProxyNode,
+  RemoteSubscriptionInfo,
   RoutingTemplate,
   RoutingTemplateConfig,
   SubscriptionCollection,
@@ -38,6 +40,7 @@ type BuildOptions = {
   requestUserAgent?: string;
   forceRefresh?: boolean;
   waitUntil?: (promise: Promise<unknown>) => void;
+  onRemoteSourceFetched?: (source: SubscriptionSource, info: RemoteSubscriptionInfo) => Promise<unknown> | unknown;
 };
 
 type InternalBuildOptions = BuildOptions & {
@@ -64,18 +67,24 @@ export async function buildSubscriptionResult(options: BuildOptions) {
   return { body, metadata: selectResponseMetadata(internal), nodes: proxies.length };
 }
 
-export async function previewSubscription(options: Pick<BuildOptions, "source" | "collection" | "sources" | "settings" | "requestUserAgent">) {
+export async function previewSubscription(options: Pick<BuildOptions, "source" | "collection" | "sources" | "settings" | "requestUserAgent" | "onRemoteSourceFetched">) {
   const sources = getSources({
     ...options,
     requestUrl: new URL("https://sub-store.local/preview"),
     target: "json",
   });
+  const runtime: InternalBuildOptions = {
+    ...options,
+    sources: options.sources,
+    requestUrl: new URL("https://sub-store.local/preview"),
+    target: "json",
+    responseMetadata: new Map(),
+  };
   const originalLists = await runWithConcurrency(
-    sources.map((sub) => async () => parseProxies(await loadSubscriptionRaw(sub, options.settings, options.requestUserAgent))),
+    sources.map((sub) => async () => parseProxies(await loadSubscriptionRaw(sub, options.settings, options.requestUserAgent, runtime))),
     getRequestConcurrency(options.settings),
     getRequestConcurrencyWait(options.settings),
   );
-  const original = addPreviewIds(originalLists.flat());
   const processedLists = await runWithConcurrency(
     originalLists.map((nodes, index) => async () => applyFilters(nodes, getFilters(sources[index]), options.settings, {
       targetPlatform: "json",
@@ -84,7 +93,10 @@ export async function previewSubscription(options: Pick<BuildOptions, "source" |
     getRequestConcurrency(options.settings),
     getRequestConcurrencyWait(options.settings),
   );
-  const processed = addPreviewIds(ensureUniqueProxyNames(await applyFilters(processedLists.flat(), getFilters(options.collection), options.settings, {
+  await Promise.all(sources.map((source, index) => notifySuccessfulRemoteFetch(runtime, source, processedLists[index]?.length || 0)));
+  const original = addPreviewIds(originalLists.flatMap((nodes, index) => withPreviewSource(nodes, sources[index])));
+  const sourcedProcessed = processedLists.flatMap((nodes, index) => withPreviewSource(nodes, sources[index]));
+  const processed = addPreviewIds(ensureUniqueProxyNames(await applyFilters(sourcedProcessed, getFilters(options.collection), options.settings, {
     targetPlatform: "json",
     collectionId: options.collection?.id,
   })));
@@ -100,8 +112,8 @@ export async function previewSourceContent(source: SubscriptionSource, settings?
     sourceId: source.id,
   }));
   return {
-    original: addPreviewIds(original),
-    processed: addPreviewIds(processed),
+    original: addPreviewIds(withPreviewSource(original, source)),
+    processed: addPreviewIds(withPreviewSource(processed, source)),
   };
 }
 
@@ -155,12 +167,16 @@ async function loadProxyNodes(options: InternalBuildOptions) {
   const sources = getSources(options).filter((sub) => sub.enabled !== false);
   if (sources.length === 0) return [];
 
-  const tasks = sources.map((sub) => async () => applyFilters(
-    parseProxies(await loadSubscriptionRaw(sub, options.settings, options.requestUserAgent, options)),
-    getFilters(sub),
-    options.settings,
-    { targetPlatform: options.target, sourceId: sub.id },
-  ));
+  const tasks = sources.map((sub) => async () => {
+    const processed = await applyFilters(
+      parseProxies(await loadSubscriptionRaw(sub, options.settings, options.requestUserAgent, options)),
+      getFilters(sub),
+      options.settings,
+      { targetPlatform: options.target, sourceId: sub.id },
+    );
+    await notifySuccessfulRemoteFetch(options, sub, processed.length);
+    return processed;
+  });
   const proxyLists = options.collection?.ignoreFailed
     ? (await runSettledWithConcurrency(tasks, getRequestConcurrency(options.settings), getRequestConcurrencyWait(options.settings))).flatMap((result) =>
         result.status === "fulfilled" ? [result.value] : [],
@@ -170,6 +186,37 @@ async function loadProxyNodes(options: InternalBuildOptions) {
   return ensureUniqueProxyNames(await applyFilters(proxyLists.flat(), getFilters(options.collection), options.settings, {
     targetPlatform: options.target,
     collectionId: options.collection?.id,
+  }));
+}
+
+async function notifySuccessfulRemoteFetch(
+  options: Pick<InternalBuildOptions, "responseMetadata" | "onRemoteSourceFetched">,
+  source: SubscriptionSource,
+  nodeCount: number,
+) {
+  if (source.type !== "remote") return;
+  const metadata = options.responseMetadata.get(source.id);
+  if (!shouldPersistRemoteFetch(metadata)) return;
+  const info = createRemoteSubscriptionInfo(metadata?.subscriptionUserinfo, nodeCount);
+  source.meta = { ...(source.meta || {}), subscriptionInfo: info };
+  try {
+    await options.onRemoteSourceFetched?.(source, info);
+  } catch {
+    // Subscription metadata persistence must never break node delivery.
+  }
+}
+
+function withPreviewSource(nodes: ProxyNode[], source: SubscriptionSource) {
+  return nodes.map((node) => ({
+    ...node,
+    __source: {
+      id: source.id,
+      name: source.name,
+      type: source.type,
+      ...(source.type === "remote" && source.meta?.subscriptionInfo
+        ? { subscriptionInfo: source.meta.subscriptionInfo }
+        : {}),
+    },
   }));
 }
 
@@ -214,7 +261,18 @@ async function loadSubscriptionRaw(
   if (totalBytes > MAX_REMOTE_SOURCE_TOTAL_BYTES) {
     throw new Error(`Remote source ${sub.name} exceeds the ${MAX_REMOTE_SOURCE_TOTAL_BYTES / (1024 * 1024)} MiB combined limit`);
   }
-  const metadata = contents.map((item) => item.metadata).find((item) => Object.keys(item).length > 0) || metadataFromSource(sub);
+  const responseMetadata = contents.map((item) => item.metadata);
+  const selectedMetadata = responseMetadata.find((item) => item.subscriptionUserinfo)
+    || responseMetadata.find((item) => Object.keys(item).length > 0)
+    || metadataFromSource(sub);
+  const cacheStatus = responseMetadata.some((item) => item.cacheStatus === "stale")
+    ? "stale"
+    : responseMetadata.some((item) => item.cacheStatus === "refresh")
+      ? "refresh"
+      : responseMetadata.some((item) => item.cacheStatus === "miss")
+        ? "miss"
+        : selectedMetadata.cacheStatus;
+  const metadata = { ...selectedMetadata, cacheStatus };
   runtime?.responseMetadata.set(sub.id, metadata);
   return contents.map((item) => decodeMaybeBase64(item.content)).join("\n");
 }
@@ -1501,7 +1559,26 @@ function renderMihomoYaml(proxies: ProxyNode[], requestUrl: URL, template?: Rout
   const logLevel = config.logLevel || config["log-level"] || "info";
   const proxyGroups = config.proxyGroups || config["proxy-groups"] || defaultProxyGroups();
   const ruleProviders = config.ruleProviders || config["rule-providers"];
+  const {
+    mixedPort: _mixedPort,
+    "mixed-port": _mixedPortAlias,
+    allowLan: _allowLan,
+    "allow-lan": _allowLanAlias,
+    mode: _mode,
+    logLevel: _logLevel,
+    "log-level": _logLevelAlias,
+    dns: _dns,
+    sniffer: _sniffer,
+    proxies: _proxies,
+    proxyGroups: _proxyGroups,
+    "proxy-groups": _proxyGroupsAlias,
+    ruleProviders: _ruleProviders,
+    "rule-providers": _ruleProvidersAlias,
+    rules: _rules,
+    ...extraConfig
+  } = config;
   const document = {
+    ...extraConfig,
     "mixed-port": mixedPort,
     "allow-lan": allowLan,
     mode: config.mode || "rule",
@@ -1540,7 +1617,13 @@ function renderTemplateProxyGroups(proxies: ProxyNode[], groupTemplates: Templat
         (name) => nodeNames.includes(name) || includedGroupNames.has(name) || allowedLiterals.has(name),
       );
       if (proxyEntries.length === 0) return undefined;
-      const { filter: _filter, proxies: _proxies, ...rest } = group;
+      const {
+        filter: _filter,
+        "exclude-filter": _excludeFilter,
+        "include-all": _includeAll,
+        proxies: _proxies,
+        ...rest
+      } = group;
       return stripUndefined({ ...rest, proxies: uniqueStrings(proxyEntries) });
     })
     .filter(Boolean);
@@ -1548,11 +1631,14 @@ function renderTemplateProxyGroups(proxies: ProxyNode[], groupTemplates: Templat
 
 function expandGroupProxies(group: TemplateProxyGroup, nodeNames: string[]) {
   const entries = group.filter ? findNamesByRegex(nodeNames, group.filter) : [];
+  const excludeFilter = typeof group["exclude-filter"] === "string" ? group["exclude-filter"] : "";
+  const filteredEntries = excludeFilter ? entries.filter((name) => !compileRegex(excludeFilter).test(name)) : entries;
+  if (group["include-all"] && !group.filter) filteredEntries.push(...nodeNames);
   for (const item of group.proxies || []) {
-    if (item === "$all") entries.push(...nodeNames);
-    else entries.push(item);
+    if (item === "$all") filteredEntries.push(...nodeNames);
+    else filteredEntries.push(item);
   }
-  return uniqueStrings(entries);
+  return uniqueStrings(filteredEntries);
 }
 
 function findNamesByRegex(names: string[], pattern: string) {
