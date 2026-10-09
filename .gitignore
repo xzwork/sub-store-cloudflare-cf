@@ -23,6 +23,7 @@ config/script-plugins.local.json
 cloudflare/src/generated/
 
 # Dependency and build output
+**/.pnpm-store/
 **/node_modules/
 **/dist/
 **/dist-ssr/
