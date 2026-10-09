@@ -4,7 +4,7 @@ import {
   MAX_REMOTE_SOURCE_URLS,
 } from "../src/lib/limits";
 import { readResponseText } from "../src/lib/read";
-import { buildSubscription, buildSubscriptionResult, convertSubscriptionContent, normalizeTargetAlias, validateSubscriptionContent } from "../src/lib/subscription";
+import { buildSubscription, buildSubscriptionResult, convertSubscriptionContent, normalizeTargetAlias, previewSubscription, validateSubscriptionContent } from "../src/lib/subscription";
 
 describe("subscription parsing and limits", () => {
   afterEach(() => vi.restoreAllMocks());
@@ -91,6 +91,49 @@ describe("subscription parsing and limits", () => {
     const cached = await buildSubscriptionResult(options);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(cached.metadata.cacheStatus).toBe("hit");
+  });
+
+  it.each([
+    ["YAML", "YAML"],
+    ["JSON", "JSON"],
+    ["YAML", "JSON"],
+    ["base64", "YAML"],
+    ["URI", "base64"],
+  ])("merges multiline remote URLs returning %s and %s in downloads and previews", async (firstFormat, secondFormat) => {
+    const formats: Record<string, (name: string) => string> = {
+      YAML: (name) => `proxies:\n  - name: ${name}\n    type: trojan\n    server: example.com\n    port: 443\n    password: password\n`,
+      JSON: (name) => JSON.stringify({ proxies: [{ name, type: "trojan", server: "example.com", port: 443, password: "password" }] }),
+      URI: (name) => `trojan://password@example.com:443#${name}`,
+      base64: (name) => btoa(`trojan://password@example.com:443#${name}`),
+    };
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      return new Response(String(input).endsWith("/first") ? formats[firstFormat]("First") : formats[secondFormat]("Second"));
+    });
+    const source = {
+      id: "multiline-remote",
+      name: "Multiline Remote",
+      type: "remote" as const,
+      url: "  https://example.com/first  \r\n\r\n https://example.com/second \r\n",
+      content: "",
+      // Source filters must operate on the combined node list.
+      filters: [{ type: "rename", pattern: "^(First|Second)$", replacement: "Merged" }, { type: "dedupe", fields: ["name"] }],
+    };
+    const options = { source, sources: [source], settings: { remoteCacheTtl: 0 } };
+    const result = await buildSubscriptionResult({
+      ...options,
+      requestUrl: new URL("https://example.com/download/source/multiline-remote/json"),
+      target: "json",
+    });
+    expect(result.nodes).toBe(1);
+    expect(JSON.parse(result.body).proxies.map((node: { name: string }) => node.name)).toEqual(["Merged"]);
+
+    const preview = await previewSubscription(options);
+    expect(preview.original.map((node) => node.name)).toEqual(["First", "Second"]);
+    expect(preview.processed.map((node) => node.name)).toEqual(["Merged"]);
+    expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual([
+      "https://example.com/first", "https://example.com/second",
+      "https://example.com/first", "https://example.com/second",
+    ]);
   });
 
   it("renders a JSON target from a local source", async () => {

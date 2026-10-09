@@ -81,7 +81,7 @@ export async function previewSubscription(options: Pick<BuildOptions, "source" |
     responseMetadata: new Map(),
   };
   const originalLists = await runWithConcurrency(
-    sources.map((sub) => async () => parseProxies(await loadSubscriptionRaw(sub, options.settings, options.requestUserAgent, runtime))),
+    sources.map((sub) => async () => loadSubscriptionNodes(sub, options.settings, options.requestUserAgent, runtime)),
     getRequestConcurrency(options.settings),
     getRequestConcurrencyWait(options.settings),
   );
@@ -169,7 +169,7 @@ async function loadProxyNodes(options: InternalBuildOptions) {
 
   const tasks = sources.map((sub) => async () => {
     const processed = await applyFilters(
-      parseProxies(await loadSubscriptionRaw(sub, options.settings, options.requestUserAgent, options)),
+      await loadSubscriptionNodes(sub, options.settings, options.requestUserAgent, options),
       getFilters(sub),
       options.settings,
       { targetPlatform: options.target, sourceId: sub.id },
@@ -235,15 +235,15 @@ function getFilters(input: SubscriptionSource | SubscriptionCollection | undefin
   return Array.isArray(filters) ? (filters as FilterRule[]) : [];
 }
 
-async function loadSubscriptionRaw(
+async function loadSubscriptionNodes(
   sub: SubscriptionSource,
   settings?: AppSettings,
   requestUserAgent?: string,
   runtime?: Pick<InternalBuildOptions, "responseMetadata" | "forceRefresh" | "waitUntil">,
-) {
+): Promise<ProxyNode[]> {
   if (sub.type === "local" || sub.content) {
     runtime?.responseMetadata.set(sub.id, metadataFromSource(sub));
-    return String(sub.content || sub.url || "");
+    return parseProxies(String(sub.content || sub.url || ""));
   }
 
   const urls = splitSourceUrls(sub.url);
@@ -274,7 +274,8 @@ async function loadSubscriptionRaw(
         : selectedMetadata.cacheStatus;
   const metadata = { ...selectedMetadata, cacheStatus };
   runtime?.responseMetadata.set(sub.id, metadata);
-  return contents.map((item) => decodeMaybeBase64(item.content)).join("\n");
+  // Parse each response independently: joining YAML/JSON documents makes them invalid.
+  return contents.flatMap((item) => parseProxies(decodeMaybeBase64(item.content)));
 }
 
 function splitSourceUrls(raw: string) {
