@@ -452,9 +452,7 @@ function stableProxyId(proxy: ProxyNode, index: number) {
 
 function parseJsonProxies(raw: string) {
   try {
-    const payload = JSON5.parse(raw);
-    const proxies = Array.isArray(payload) ? payload : Array.isArray(payload.proxies) ? payload.proxies : [];
-    return proxies.map(normalizeProxy).filter(isProxyNode);
+    return parseStructuredProxies(JSON5.parse(raw));
   } catch {
     return [];
   }
@@ -462,12 +460,27 @@ function parseJsonProxies(raw: string) {
 
 function parseYamlProxies(raw: string) {
   try {
-    const payload = parseYaml(raw) as { proxies?: unknown };
-    const proxies = Array.isArray(payload?.proxies) ? payload.proxies : [];
-    return proxies.map(normalizeProxy).filter(isProxyNode);
+    return parseStructuredProxies(parseYaml(raw));
   } catch {
     return [];
   }
+}
+
+function parseStructuredProxies(payload: unknown): ProxyNode[] {
+  if (!payload || typeof payload !== "object") return [];
+  const document = payload as Record<string, unknown>;
+  const proxies = Array.isArray(payload) ? payload : Array.isArray(document.proxies) ? document.proxies : [];
+  const fingerprint = stringSetting(document["global-client-fingerprint"]);
+  return proxies.map(normalizeProxy).filter(isProxyNode).map((proxy) => withClientFingerprint(proxy, fingerprint));
+}
+
+function withClientFingerprint(proxy: ProxyNode, fingerprint: string): ProxyNode {
+  // Preserve source-level TLS defaults per node when aggregating different subscriptions.
+  const supportsFingerprint = ["vless", "vmess", "trojan", "anytls"].includes(proxy.type)
+    || (proxy.type === "ss" && ["shadow-tls", "restls", "jls"].includes(String(proxy.plugin)));
+  return fingerprint && supportsFingerprint && !proxy["client-fingerprint"]
+    ? { ...proxy, "client-fingerprint": fingerprint }
+    : proxy;
 }
 
 function parseProxyLines(raw: string) {
@@ -913,7 +926,7 @@ function parseVless(line: string, index: number): ProxyNode {
   const params = url.searchParams;
   const publicKey = params.get("pbk") || params.get("public-key");
   const shortId = params.get("sid") || params.get("short-id");
-  const security = params.get("security") || (publicKey ? "reality" : "tls");
+  const security = params.get("security") || (publicKey ? "reality" : "none");
 
   return stripUndefined({
     name: decodeURIComponent(url.hash.slice(1) || `vless-${index + 1}`),
@@ -923,13 +936,52 @@ function parseVless(line: string, index: number): ProxyNode {
     uuid: decodeURIComponent(url.username),
     udp: true,
     flow: params.get("flow") || undefined,
-    network: params.get("type") || "tcp",
+    ...parseUriTransport(params),
     tls: security !== "none",
-    servername: params.get("sni") || undefined,
+    servername: params.get("sni") || params.get("peer") || undefined,
     encryption: params.get("encryption") || "none",
+    ...parseUriTlsOptions(params),
     "client-fingerprint": params.get("fp") || "chrome",
+    "packet-encoding": params.get("packetEncoding") || params.get("packet-encoding") || undefined,
     "reality-opts": publicKey ? stripUndefined({ "public-key": publicKey, "short-id": shortId, "spider-x": params.get("spx") || "/" }) : undefined,
   });
+}
+
+function parseUriTlsOptions(params: URLSearchParams) {
+  return stripUndefined({
+    alpn: commaList(params.get("alpn")),
+    "client-fingerprint": params.get("fp") || undefined,
+    "skip-cert-verify": optionBoolean(params.get("allowInsecure") ?? params.get("allow_insecure") ?? params.get("insecure")),
+  });
+}
+
+function parseUriTransport(params: URLSearchParams) {
+  const type = params.get("type") || "tcp";
+  const network = type === "httpupgrade" ? "ws" : type === "http" ? "h2" : type === "tcp" && params.get("headerType") === "http" ? "http" : type;
+  const host = params.get("host");
+  const path = params.get("path") || "/";
+  if (network === "ws") {
+    return {
+      network,
+      "ws-opts": stripUndefined({
+        path,
+        headers: host ? { Host: host } : undefined,
+        "max-early-data": numberOrUndefined(params.get("ed") ?? undefined),
+        "early-data-header-name": params.get("eh") || undefined,
+        "v2ray-http-upgrade": type === "httpupgrade" ? true : undefined,
+      }),
+    };
+  }
+  if (network === "grpc") {
+    return { network, "grpc-opts": stripUndefined({ "grpc-service-name": params.get("serviceName") || params.get("service-name") || params.get("path") || undefined }) };
+  }
+  if (network === "h2") {
+    return { network, "h2-opts": stripUndefined({ host: commaList(host), path }) };
+  }
+  if (network === "http") {
+    return { network, "http-opts": stripUndefined({ path: [path], headers: host ? { Host: commaList(host) } : undefined }) };
+  }
+  return { network };
 }
 
 function parseAnytls(line: string, index: number): ProxyNode {
@@ -985,21 +1037,28 @@ function parseHysteria(line: string, index: number): ProxyNode {
 
 function parseTrojan(line: string, index: number): ProxyNode {
   const url = new URL(line);
+  const params = url.searchParams;
   return stripUndefined({
     name: decodeURIComponent(url.hash.slice(1) || `trojan-${index + 1}`),
     type: "trojan",
     server: url.hostname,
     port: Number(url.port || 443),
     password: decodeURIComponent(url.username),
-    sni: url.searchParams.get("sni") || url.searchParams.get("peer") || undefined,
-    "skip-cert-verify": boolParam(url.searchParams.get("allowInsecure")),
+    sni: params.get("sni") || params.get("peer") || undefined,
+    ...parseUriTransport(params),
+    ...parseUriTlsOptions(params),
     udp: true,
   });
 }
 
 function parseVmess(line: string, index: number): ProxyNode | undefined {
   try {
-    const payload = JSON.parse(atob(line.slice("vmess://".length)));
+    const payload = JSON.parse(decodeBase64UrlText(line.slice("vmess://".length)));
+    const transport = new URLSearchParams({ type: payload.net || "tcp" });
+    if (payload.host) transport.set("host", String(payload.host));
+    if (payload.path) transport.set("path", String(payload.path));
+    if (payload.net === "tcp" && payload.type === "http") transport.set("headerType", "http");
+    if (payload.serviceName) transport.set("serviceName", String(payload.serviceName));
     return stripUndefined({
       name: payload.ps || `vmess-${index + 1}`,
       type: "vmess",
@@ -1010,8 +1069,10 @@ function parseVmess(line: string, index: number): ProxyNode | undefined {
       cipher: payload.scy || "auto",
       tls: payload.tls === "tls",
       servername: payload.sni || payload.host || undefined,
-      network: payload.net || "tcp",
-      "ws-opts": payload.net === "ws" ? { path: payload.path || "/", headers: { Host: payload.host } } : undefined,
+      ...parseUriTransport(transport),
+      alpn: Array.isArray(payload.alpn) ? payload.alpn : commaList(payload.alpn),
+      "client-fingerprint": payload.fp || undefined,
+      "skip-cert-verify": optionBoolean(payload.allowInsecure ?? payload.insecure),
       udp: true,
     });
   } catch {
@@ -1023,23 +1084,58 @@ function parseShadowsocks(line: string, index: number): ProxyNode | undefined {
   try {
     const withoutScheme = line.slice("ss://".length);
     const [main, hash = ""] = withoutScheme.split("#");
-    const decodedMain = main.includes("@") ? main : atob(main);
-    const [userInfo, hostInfo] = decodedMain.split("@");
+    const [address, rawQuery = ""] = main.split("?");
+    const decodedMain = address.includes("@") ? address : decodeBase64UrlText(address);
+    const atIndex = decodedMain.lastIndexOf("@");
+    if (atIndex < 0) return undefined;
+    const userInfo = decodedMain.slice(0, atIndex);
+    const endpoint = new URL(`ss://${decodedMain.slice(atIndex + 1)}`);
     const decodedUserInfo = userInfo.includes(":") ? userInfo : decodeBase64UrlText(userInfo);
-    const [cipher, password] = decodedUserInfo.split(":");
-    const lastColon = hostInfo.lastIndexOf(":");
+    const colonIndex = decodedUserInfo.indexOf(":");
+    if (colonIndex < 0) return undefined;
+    const plainUserInfo = userInfo.includes(":");
+    const cipher = plainUserInfo ? decodeURIComponent(decodedUserInfo.slice(0, colonIndex)) : decodedUserInfo.slice(0, colonIndex);
+    const password = plainUserInfo ? decodeURIComponent(decodedUserInfo.slice(colonIndex + 1)) : decodedUserInfo.slice(colonIndex + 1);
+    const plugin = new URLSearchParams(rawQuery).get("plugin");
     return stripUndefined({
       name: decodeURIComponent(hash || `ss-${index + 1}`),
       type: "ss",
-      server: hostInfo.slice(0, lastColon),
-      port: Number(hostInfo.slice(lastColon + 1).split("?")[0]),
+      server: endpoint.hostname.replace(/^\[|\]$/g, ""),
+      port: Number(endpoint.port),
       cipher,
       password,
+      ...(plugin ? parseShadowsocksPlugin(plugin) : {}),
       udp: true,
     });
   } catch {
     return undefined;
   }
+}
+
+function parseShadowsocksPlugin(raw: string) {
+  const parts = [""];
+  for (let index = 0; index < raw.length; index += 1) {
+    const char = raw[index];
+    if (char === "\\" && index + 1 < raw.length) parts[parts.length - 1] += raw[++index];
+    else if (char === ";") parts.push("");
+    else parts[parts.length - 1] += char;
+  }
+  const [name, ...entries] = parts;
+  const plugin = ["obfs-local", "simple-obfs"].includes(name) ? "obfs" : name;
+  const options: Record<string, unknown> = {};
+  for (const entry of entries.filter(Boolean)) {
+    const equalIndex = entry.indexOf("=");
+    const key = equalIndex < 0 ? entry : entry.slice(0, equalIndex);
+    const value = equalIndex < 0 ? true : entry.slice(equalIndex + 1);
+    if (plugin === "obfs") {
+      const mappedKey = ({ obfs: "mode", "obfs-host": "host", "obfs-uri": "path" } as Record<string, string>)[key] || key;
+      options[mappedKey] = value;
+    } else {
+      options[key] = ["tls", "mux", "skip-cert-verify"].includes(key) ? optionBoolean(value) : value;
+    }
+  }
+  if (plugin === "v2ray-plugin" && !options.mode) options.mode = "websocket";
+  return { plugin, "plugin-opts": stripUndefined(options) };
 }
 
 function parseShadowsocksR(line: string, index: number): ProxyNode | undefined {
@@ -1589,7 +1685,7 @@ function renderMihomoYaml(proxies: ProxyNode[], requestUrl: URL, template?: Rout
     "log-level": logLevel,
     ...(config.dns ? { dns: config.dns } : {}),
     ...(config.sniffer ? { sniffer: config.sniffer } : {}),
-    proxies: proxies.map(stripUndefined),
+    proxies: proxies.map((proxy) => withClientFingerprint(proxy, stringSetting(config["global-client-fingerprint"]))).map(stripUndefined),
     "proxy-groups": renderTemplateProxyGroups(proxies, proxyGroups),
     ...(ruleProviders ? { "rule-providers": ruleProviders } : {}),
     rules: config.rules && config.rules.length > 0 ? config.rules : ["MATCH,🚀 节点选择"],
@@ -1608,7 +1704,7 @@ function defaultProxyGroups(): TemplateProxyGroup[] {
 
 function renderTemplateProxyGroups(proxies: ProxyNode[], groupTemplates: TemplateProxyGroup[]) {
   const nodeNames = proxies.map((proxy) => proxy.name);
-  const rawGroups = groupTemplates.map((group) => ({
+  const rawGroups: Array<TemplateProxyGroup & { proxies: string[] }> = groupTemplates.map((group) => ({
     ...group,
     proxies: expandGroupProxies(group, nodeNames),
   }));

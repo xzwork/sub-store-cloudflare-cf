@@ -11,8 +11,8 @@ export function createRemoteSubscriptionInfo(
   const total = fields.total;
   const provided = upload !== undefined && download !== undefined && total !== undefined;
   const used = provided ? upload + download : undefined;
-  const remaining = provided ? total - used : undefined;
-  const usagePercent = provided && total > 0 ? (used / total) * 100 : undefined;
+  const remaining = used !== undefined && total !== undefined ? total - used : undefined;
+  const usagePercent = used !== undefined && total !== undefined && total > 0 ? (used / total) * 100 : undefined;
 
   return {
     provided,

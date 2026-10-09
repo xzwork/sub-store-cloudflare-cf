@@ -5859,8 +5859,8 @@ export const VENDORED_ROUTING_TEMPLATES: Record<string, RoutingTemplateConfig> =
         "https://[2001:4860:4860::8888]/dns-query#🌍DNS解析"
       ],
       "proxy-server-nameserver": [
-        "https://1.1.1.1/dns-query#🌍DNS解析",
-        "https://8.8.8.8/dns-query#🌍DNS解析"
+        "https://223.5.5.5/dns-query#DIRECT",
+        "https://1.12.12.12/dns-query#DIRECT"
       ]
     },
     "proxy-groups": [

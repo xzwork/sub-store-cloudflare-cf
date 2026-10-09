@@ -162,3 +162,22 @@ pnpm run install:doctor
 - `sort-by-name`
 
 再逐步增加区域过滤。
+
+## 原订阅正常，导出后在 Clash Verge 中 timeout
+
+先确认使用的是 `/mihomo` 下载目标，并在原订阅和项目导出的 YAML 中找到同一个节点。
+比较节点的 `server`、`port`、认证字段、`tls`、SNI、`client-fingerprint`、`alpn`、
+`reality-opts`、`ws-opts`、`grpc-opts` 和 `plugin-opts`。名称变化不影响连接，
+这些连接参数变化则可能导致握手失败。
+
+URI 输入会保留 VLESS/Trojan 的 WebSocket 路径和 Host、gRPC 服务名、HTTP/2 传输参数、
+TLS 指纹、ALPN 和显式证书验证设置。VMess Base64 输入保留相同的传输和 TLS 参数；
+SS 输入保留完整密码和 SIP002 混淆插件配置。VLESS 未指定 `security` 时默认不启用 TLS，
+带 Reality 公钥时仍可识别为 Reality。原 YAML/JSON 中的 `global-client-fingerprint`
+会继承到支持该字段且未显式设置指纹的节点，避免组合订阅丢失原始握手设置。
+
+如果使用 huLter 模板，节点域名通过直连 DNS 解析，避免“连接代理才能解析代理域名”的
+循环依赖。自定义模板也应为 `dns.proxy-server-nameserver` 配置不依赖代理节点的解析路径。
+
+升级 Worker 后，在 Clash Verge 中更新订阅再比较。只测速 timeout 时检查测速 URL；
+实际访问也失败时查看客户端连接日志，并核对上述节点参数及客户端的 DNS/TUN 覆写。

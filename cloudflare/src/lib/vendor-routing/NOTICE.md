@@ -15,6 +15,12 @@ this application, and helper anchors are expanded. Aethersailor's self-hosted
 groups select app-provided nodes whose names contain `自建`, `家宽`, `home`,
 `private`, `selfhost`, or `🏴‍☠️`.
 
+huLter's `proxy-server-nameserver` uses direct AliDNS/Tencent DoH endpoints so
+resolving a proxy node's hostname does not depend on connecting to that node.
+Template-level `global-client-fingerprint` is expanded into supported nodes'
+`client-fingerprint` fields when exporting, without overwriting explicit node
+fingerprints or defaults inherited from their source subscriptions.
+
 ## Source files
 
 - Aethersailor: all eight regular `Custom_Clash*.yaml` variants plus
