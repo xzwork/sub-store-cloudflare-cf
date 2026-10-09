@@ -34,7 +34,7 @@
   },
   "routes": [
     {
-      "pattern": "sub.linuxzw.cn",
+      "pattern": "sub.linuxzw.cn", // 务必改为自己的域名，如果没有就删除
       "custom_domain": true
     }
   ]
